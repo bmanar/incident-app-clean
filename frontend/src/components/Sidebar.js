@@ -5,76 +5,158 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Avatar,
+  Divider,
   Box,
   Typography,
-  Divider,
+  Button,
+  Collapse,
 } from "@mui/material";
+import { Link, useLocation } from "react-router-dom";
+import BugReportIcon from "@mui/icons-material/BugReport";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import SettingsIcon from "@mui/icons-material/Settings";
-import BugReportIcon from "@mui/icons-material/BugReport";
-import { Link, useLocation } from "react-router-dom";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import SourceIcon from "@mui/icons-material/Source";
+import GroupIcon from "@mui/icons-material/Group";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { useUser } from "../UserContext";
+import { useState } from "react";
 
-const menuItems = [
-  {
-    text: "Remonter un incident",
-    icon: <AddCircleOutlineIcon />,
-    path: "/ajouter",
-  },
-  { text: "Liste des incidents", icon: <ListAltIcon />, path: "/liste" },
-];
+const drawerWidth = 250;
 
 export default function Sidebar() {
   const location = useLocation();
+  const { user, logout } = useUser();
+
+  // Pour le menu "Paramètres"
+  const [openParams, setOpenParams] = useState(true);
 
   return (
     <Drawer
       variant="permanent"
-      anchor="left"
       sx={{
-        width: 220,
+        width: drawerWidth,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
-          width: 220,
+          width: drawerWidth,
           boxSizing: "border-box",
-          background: "linear-gradient(135deg,#1976d2 80%,#90caf9 100%)",
-          color: "#fff",
+          background: "#f6f7fb",
         },
       }}
     >
-      <Box display="flex" flexDirection="column" alignItems="center" py={3}>
-        <Avatar
-          sx={{ bgcolor: "#fff", color: "#1976d2", width: 56, height: 56 }}
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        {/* Titre et nom utilisateur */}
+        <Box
+          sx={{
+            p: 3,
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            background: "#e8edfa",
+          }}
         >
-          <BugReportIcon fontSize="large" />
-        </Avatar>
-        <Typography variant="h6" fontWeight={700} sx={{ mt: 2 }}>
-          IncidentsApp
-        </Typography>
-      </Box>
-      <Divider sx={{ bgcolor: "#fff", opacity: 0.2 }} />
-      <List>
-        {menuItems.map((item) => (
+          <AccountCircleIcon sx={{ fontSize: 36, color: "#1976d2" }} />
+          <Box>
+            <Typography variant="subtitle2" sx={{ color: "#888" }}>
+              Connecté
+            </Typography>
+            <Typography variant="subtitle1" fontWeight={600}>
+              {user ? `${user.prenom} ${user.nom}` : ""}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Menu principal */}
+        <List sx={{ flexGrow: 1 }}>
           <ListItem
             button
-            key={item.text}
             component={Link}
-            to={item.path}
-            selected={location.pathname === item.path}
-            sx={{
-              borderRadius: 2,
-              mx: 1,
-              my: 1,
-              bgcolor: location.pathname === item.path ? "#1565c0" : "inherit",
-              "&:hover": { bgcolor: "#1976d2", color: "#fff" },
-            }}
+            to="/ajouter"
+            selected={location.pathname === "/ajouter"}
           >
-            <ListItemIcon sx={{ color: "#fff" }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
+            <ListItemIcon>
+              <AddCircleOutlineIcon color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="Nouvel incident" />
           </ListItem>
-        ))}
-      </List>
+          <ListItem
+            button
+            component={Link}
+            to="/liste"
+            selected={location.pathname === "/liste"}
+          >
+            <ListItemIcon>
+              <ListAltIcon color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="Liste des incidents" />
+          </ListItem>
+          <Divider sx={{ my: 1 }} />
+
+          {/* Menu Paramètres */}
+          <ListItem button onClick={() => setOpenParams((o) => !o)}>
+            <ListItemIcon>
+              <SettingsIcon />
+            </ListItemIcon>
+            <ListItemText primary="Paramètres" />
+            {openParams ? <ExpandLess /> : <ExpandMore />}
+          </ListItem>
+          <Collapse in={openParams} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              <ListItem
+                button
+                component={Link}
+                to="/admin-sources"
+                selected={location.pathname === "/admin-sources"}
+                sx={{ pl: 4 }}
+              >
+                <ListItemIcon>
+                  <SourceIcon />
+                </ListItemIcon>
+                <ListItemText primary="Sources d'incident" />
+              </ListItem>
+              <ListItem
+                button
+                component={Link}
+                to="/admin-entites"
+                selected={location.pathname === "/admin-entites"}
+                sx={{ pl: 4 }}
+              >
+                <ListItemIcon>
+                  <GroupIcon />
+                </ListItemIcon>
+                <ListItemText primary="Entités" />
+              </ListItem>
+              <ListItem
+                button
+                component={Link}
+                to="/admin-users"
+                selected={location.pathname === "/admin-users"}
+                sx={{ pl: 4 }}
+              >
+                <ListItemIcon>
+                  <AccountCircleIcon />
+                </ListItemIcon>
+                <ListItemText primary="Utilisateurs" />
+              </ListItem>
+            </List>
+          </Collapse>
+        </List>
+
+        {/* Bouton Déconnexion tout en bas */}
+        <Box sx={{ p: 2, mt: "auto" }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            fullWidth
+            onClick={logout}
+            startIcon={<AccountCircleIcon />}
+          >
+            Déconnexion
+          </Button>
+        </Box>
+      </Box>
     </Drawer>
   );
 }

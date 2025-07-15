@@ -9,6 +9,7 @@ import {
   TableRow,
   Avatar,
   Box,
+  Chip,
   Typography,
   TextField,
   InputAdornment,
@@ -17,10 +18,16 @@ import {
   Select,
   MenuItem,
   TableSortLabel,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import EuroIcon from "@mui/icons-material/Euro";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import SearchIcon from "@mui/icons-material/Search";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { useNavigate } from "react-router-dom";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) return -1;
@@ -51,6 +58,7 @@ export default function IncidentsList() {
   const [filterPriorite, setFilterPriorite] = useState("");
   const [order, setOrder] = useState("desc");
   const [orderBy, setOrderBy] = useState("id");
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch("http://localhost:8080/api/incidents")
@@ -89,11 +97,12 @@ export default function IncidentsList() {
     setOrderBy(property);
   };
 
-  // Pour affichage Source lisible
-  const getSourceLabel = (incident) => {
-    if (!incident.sourceIncident) return "";
-    const src = sources.find((s) => s.id === incident.sourceIncident.id);
-    return src ? src.nom : "";
+  const handleDelete = (id) => {
+    if (window.confirm("Supprimer cet incident ?")) {
+      fetch(`http://localhost:8080/api/incidents/${id}`, {
+        method: "DELETE",
+      }).then(() => setIncidents(incidents.filter((i) => i.id !== id)));
+    }
   };
 
   return (
@@ -132,7 +141,6 @@ export default function IncidentsList() {
           }}
           sx={{ width: 220, minWidth: 180 }}
         />
-
         <FormControl sx={{ width: 180, minWidth: 150 }}>
           <InputLabel id="source-filter-label">Source</InputLabel>
           <Select
@@ -149,7 +157,6 @@ export default function IncidentsList() {
             ))}
           </Select>
         </FormControl>
-
         <FormControl sx={{ width: 150, minWidth: 120 }}>
           <InputLabel id="priorite-filter-label">Priorité</InputLabel>
           <Select
@@ -220,6 +227,12 @@ export default function IncidentsList() {
                   <b>Montant des pertes</b>
                 </TableSortLabel>
               </TableCell>
+              <TableCell align="center">
+                <b>PJ</b>
+              </TableCell>
+              <TableCell align="right">
+                <b>Actions</b>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -230,18 +243,63 @@ export default function IncidentsList() {
                   <TableCell>{incident.dateRemontee}</TableCell>
                   <TableCell>{incident.description}</TableCell>
                   <TableCell>
-                    <b>{incident.prioriteMetier}</b>
+                    <Chip
+                      label={incident.prioriteMetier}
+                      color={
+                        incident.prioriteMetier === "P0"
+                          ? "error"
+                          : incident.prioriteMetier === "P1"
+                          ? "warning"
+                          : "default"
+                      }
+                      size="small"
+                    />
                   </TableCell>
-                  <TableCell>{getSourceLabel(incident)}</TableCell>
+                  <TableCell>{incident.sourceIncident?.nom || ""}</TableCell>
                   <TableCell align="right">
-                    <Box
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="flex-end"
+                    {incident.montantPertes != null ? (
+                      <>
+                        <EuroIcon
+                          fontSize="small"
+                          sx={{ verticalAlign: "middle", mr: 0.5 }}
+                        />
+                        {incident.montantPertes}
+                      </>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    {incident.pieceJointe ? (
+                      <Tooltip title="Télécharger la pièce jointe">
+                        <IconButton
+                          component="a"
+                          href={`http://localhost:8080/api/incidents/piece-jointe/${incident.pieceJointe}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="small"
+                          color="primary"
+                        >
+                          <AttachFileIcon />
+                        </IconButton>
+                      </Tooltip>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton
+                      color="primary"
+                      onClick={() => navigate(`/incident/${incident.id}`)}
                     >
-                      <EuroIcon sx={{ fontSize: 18, mr: 1 }} />
-                      <Typography>{incident.montantPertes}</Typography>
-                    </Box>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      color="error"
+                      onClick={() => handleDelete(incident.id)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               )

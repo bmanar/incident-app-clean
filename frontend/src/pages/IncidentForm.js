@@ -1,39 +1,39 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Paper,
+  Box,
   Typography,
   TextField,
+  MenuItem,
   Button,
-  Box,
-  Avatar,
+  Paper,
+  Select,
   FormControl,
   InputLabel,
-  Select,
-  MenuItem,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormLabel,
-  InputAdornment,
   Alert,
-  Grid,
+  RadioGroup,
+  Radio,
+  FormLabel,
+  FormControlLabel,
 } from "@mui/material";
-import EuroIcon from "@mui/icons-material/Euro";
-import BugReportIcon from "@mui/icons-material/BugReport";
+
+const PRIORITIES = ["P0", "P1", "P2", "P3"];
+const PERIODS = ["Semaine", "Mois", "Trimestre", "An"];
 
 export default function IncidentForm() {
   const [form, setForm] = useState({
     description: "",
-    prioriteMetier: "",
-    sourceIncidentId: "",
-    dateRemontee: "",
+    prioriteMetier: "P2",
     montantPertes: "",
     nombre: "",
-    periode: "",
+    periode: "Mois",
+    sourceIncidentId: "",
+    dateRemontee: new Date().toISOString().slice(0, 10),
+    pieceJointe: null,
+    statutIncident: "Nouveau", // Valeur par défaut invisible
   });
-
   const [sources, setSources] = useState([]);
-  const [success, setSuccess] = useState(false);
+  const [alert, setAlert] = useState("");
+  const [uploadFileName, setUploadFileName] = useState("");
 
   useEffect(() => {
     fetch("http://localhost:8080/api/sources-incidents")
@@ -42,172 +42,147 @@ export default function IncidentForm() {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    const { name, value, type } = e.target;
+    setForm((f) => ({
+      ...f,
+      [name]: type === "number" ? Number(value) : value,
+    }));
+  };
+
+  const handleFileChange = (e) => {
+    setForm((f) => ({ ...f, pieceJointe: e.target.files[0] }));
+    setUploadFileName(e.target.files[0]?.name || "");
+  };
+
+  const handleRemoveFile = () => {
+    setForm((f) => ({ ...f, pieceJointe: null }));
+    setUploadFileName("");
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const formData = new FormData();
+    formData.append("description", form.description);
+    formData.append("prioriteMetier", form.prioriteMetier);
+    formData.append("montantPertes", form.montantPertes || 0);
+    formData.append("nombre", form.nombre || 0);
+    formData.append("periode", form.periode);
+    formData.append("sourceIncidentId", form.sourceIncidentId);
+    formData.append("dateRemontee", form.dateRemontee);
+    formData.append("statutIncident", form.statutIncident); // Invisible, envoyé "Nouveau"
+    if (form.pieceJointe) {
+      formData.append("pieceJointe", form.pieceJointe);
+    }
+
     fetch("http://localhost:8080/api/incidents", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        montantPertes: form.montantPertes ? parseFloat(form.montantPertes) : 0,
-        nombre: form.nombre ? parseInt(form.nombre) : 0,
-        sourceIncident: { id: form.sourceIncidentId },
-      }),
-    })
-      .then((res) => res.json())
-      .then(() => {
-        setSuccess(true);
+      body: formData,
+    }).then((res) => {
+      if (res.ok) {
+        setAlert("Incident ajouté !");
         setForm({
           description: "",
-          prioriteMetier: "",
-          sourceIncidentId: "",
-          dateRemontee: "",
+          prioriteMetier: "P2",
           montantPertes: "",
           nombre: "",
-          periode: "",
+          periode: "Mois",
+          sourceIncidentId: "",
+          dateRemontee: new Date().toISOString().slice(0, 10),
+          pieceJointe: null,
+          statutIncident: "Nouveau",
         });
-        setTimeout(() => setSuccess(false), 2000);
-      });
+        setUploadFileName("");
+        setTimeout(() => setAlert(""), 1800);
+      } else {
+        setAlert("Erreur lors de l'ajout de l'incident");
+      }
+    });
   };
 
   return (
-    <Paper
-      elevation={8}
-      sx={{
-        p: 5,
-        maxWidth: 650,
-        mx: "auto",
-        mt: 5,
-        borderRadius: 4,
-        background: "linear-gradient(120deg,#e3f2fd 70%,#f6f7fb 100%)",
-      }}
-    >
-      <Box display="flex" alignItems="center" mb={3}>
-        <Avatar sx={{ bgcolor: "#1976d2", mr: 2 }}>
-          <BugReportIcon />
-        </Avatar>
-        <Typography variant="h5" fontWeight={700}>
-          Remonter un incident
+    <Box maxWidth={600} mx="auto" mt={6}>
+      <Paper sx={{ p: 4, borderRadius: 4, boxShadow: 2 }}>
+        <Typography variant="h5" fontWeight={700} mb={3}>
+          Remontée d’un incident
         </Typography>
-      </Box>
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Incident ajouté avec succès !
-        </Alert>
-      )}
+        {alert && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {alert}
+          </Alert>
+        )}
 
-      <form onSubmit={handleSubmit}>
-        <TextField
-          label="Description"
-          name="description"
-          fullWidth
-          margin="normal"
-          value={form.description}
-          onChange={handleChange}
-          required
-        />
-
-        <FormLabel component="legend" sx={{ mt: 2 }}>
-          Priorité métier
-        </FormLabel>
-        <RadioGroup
-          row
-          name="prioriteMetier"
-          value={form.prioriteMetier}
-          onChange={handleChange}
-          sx={{ mb: 2 }}
-        >
-          <FormControlLabel
-            value="P0"
-            control={<Radio color="error" />}
-            label="P0"
-          />
-          <FormControlLabel
-            value="P1"
-            control={<Radio color="warning" />}
-            label="P1"
-          />
-          <FormControlLabel
-            value="P2"
-            control={<Radio color="info" />}
-            label="P2"
-          />
-          <FormControlLabel value="P3" control={<Radio />} label="P3" />
-        </RadioGroup>
-
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="source-incident-label">
-            Source de l'incident
-          </InputLabel>
-          <Select
-            labelId="source-incident-label"
-            name="sourceIncidentId"
-            value={form.sourceIncidentId}
-            label="Source de l'incident"
+        <form onSubmit={handleSubmit} encType="multipart/form-data">
+          <TextField
+            label="Description"
+            name="description"
+            fullWidth
+            margin="normal"
+            value={form.description}
             onChange={handleChange}
             required
-          >
-            {sources.map((s) => (
-              <MenuItem key={s.id} value={s.id}>
-                {s.nom}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+          />
 
-        <TextField
-          label="Date de remontée"
-          name="dateRemontee"
-          type="date"
-          fullWidth
-          margin="normal"
-          InputLabelProps={{ shrink: true }}
-          value={form.dateRemontee}
-          onChange={handleChange}
-        />
+          <FormControl fullWidth margin="normal">
+            <FormLabel id="priorite-radio-group-label">Priorité</FormLabel>
+            <RadioGroup
+              row
+              aria-labelledby="priorite-radio-group-label"
+              name="prioriteMetier"
+              value={form.prioriteMetier}
+              onChange={handleChange}
+            >
+              {PRIORITIES.map((p) => (
+                <FormControlLabel
+                  key={p}
+                  value={p}
+                  control={<Radio color="primary" />}
+                  label={p}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
 
-        <TextField
-          label="Montant des pertes financières"
-          name="montantPertes"
-          type="number"
-          fullWidth
-          margin="normal"
-          value={form.montantPertes}
-          onChange={handleChange}
-          InputProps={{
-            inputProps: { min: 0, step: "0.01" },
-            startAdornment: (
-              <InputAdornment position="start">
-                <EuroIcon />
-              </InputAdornment>
-            ),
-          }}
-          InputLabelProps={{ shrink: true }}
-          required
-        />
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="source-label">Source</InputLabel>
+            <Select
+              labelId="source-label"
+              name="sourceIncidentId"
+              value={form.sourceIncidentId}
+              label="Source"
+              onChange={handleChange}
+              required
+            >
+              <MenuItem value="">Choisir…</MenuItem>
+              {sources.map((src) => (
+                <MenuItem key={src.id} value={src.id}>
+                  {src.nom}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        {/* Bloc fréquence : Nombre d'incidents + Période */}
-        <Grid container spacing={2} alignItems="center" sx={{ mt: 1 }}>
-          <Grid item xs={6}>
+          <TextField
+            label="Montant des pertes"
+            name="montantPertes"
+            type="number"
+            fullWidth
+            margin="normal"
+            value={form.montantPertes}
+            onChange={handleChange}
+            InputProps={{ endAdornment: <span>€</span> }}
+          />
+          <Box display="flex" gap={2} alignItems="center">
             <TextField
               label="Nombre d'incidents"
               name="nombre"
               type="number"
-              fullWidth
               margin="normal"
               value={form.nombre}
               onChange={handleChange}
-              inputProps={{ min: 0, step: 1 }}
-              required
+              sx={{ width: 120 }}
             />
-          </Grid>
-          <Grid item xs={6}>
-            <FormControl fullWidth margin="normal">
+            <FormControl margin="normal" sx={{ minWidth: 130 }}>
               <InputLabel id="periode-label">Période</InputLabel>
               <Select
                 labelId="periode-label"
@@ -215,28 +190,60 @@ export default function IncidentForm() {
                 value={form.periode}
                 label="Période"
                 onChange={handleChange}
-                required
               >
-                <MenuItem value="Semaine">Semaine</MenuItem>
-                <MenuItem value="Mois">Mois</MenuItem>
-                <MenuItem value="Trimestre">Trimestre</MenuItem>
-                <MenuItem value="An">An</MenuItem>
+                {PERIODS.map((p) => (
+                  <MenuItem key={p} value={p}>
+                    {p}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
-          </Grid>
-        </Grid>
+          </Box>
 
-        <Box textAlign="right" mt={2}>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            size="large"
-          >
-            Enregistrer
-          </Button>
-        </Box>
-      </form>
-    </Paper>
+          <TextField
+            label="Date de remontée"
+            name="dateRemontee"
+            type="date"
+            fullWidth
+            margin="normal"
+            value={form.dateRemontee}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+          />
+
+          {/* Champ fichier PJ */}
+          <Box mt={2} mb={2}>
+            <Button variant="outlined" component="label">
+              {uploadFileName
+                ? "Changer la pièce jointe"
+                : "Ajouter une pièce jointe"}
+              <input
+                type="file"
+                hidden
+                onChange={handleFileChange}
+                accept=".pdf,image/*"
+              />
+            </Button>
+            {uploadFileName && (
+              <Box component="span" ml={2}>
+                {uploadFileName}{" "}
+                <Button color="error" onClick={handleRemoveFile} size="small">
+                  Supprimer
+                </Button>
+              </Box>
+            )}
+          </Box>
+
+          {/* Champ caché pour le statut */}
+          <input type="hidden" name="statutIncident" value="Nouveau" />
+
+          <Box mt={3} display="flex" gap={2}>
+            <Button type="submit" variant="contained" color="primary">
+              Enregistrer
+            </Button>
+          </Box>
+        </form>
+      </Paper>
+    </Box>
   );
 }

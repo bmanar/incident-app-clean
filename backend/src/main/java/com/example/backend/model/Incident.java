@@ -1,12 +1,8 @@
 package com.example.backend.model;
 
-
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.Set;
-
-
-
 
 @Entity
 public class Incident {
@@ -30,11 +26,11 @@ public class Incident {
 
     private LocalDate dateRemontee;
 
-    // 🚨 CHANGEMENT : lien direct vers SourceIncident
     @ManyToOne
     private SourceIncident sourceIncident;
 
-    private String statutIncident;
+    private String statutIncident; // Nouveau, En cours, Traité, Abandonné
+
     private String description;
     private String prioriteMetier;
     private Double montantPertes;
@@ -45,7 +41,11 @@ public class Incident {
     private LocalDate dateProposee;
     private String contactPrincipal;
 
+    // --- PJ ---
+    private String pieceJointe; // nom du fichier si PJ présente, sinon null
+
     // Getters & Setters
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -61,7 +61,6 @@ public class Incident {
     public LocalDate getDateRemontee() { return dateRemontee; }
     public void setDateRemontee(LocalDate dateRemontee) { this.dateRemontee = dateRemontee; }
 
-    // --- SourceIncident ---
     public SourceIncident getSourceIncident() { return sourceIncident; }
     public void setSourceIncident(SourceIncident sourceIncident) { this.sourceIncident = sourceIncident; }
 
@@ -94,4 +93,7 @@ public class Incident {
 
     public String getContactPrincipal() { return contactPrincipal; }
     public void setContactPrincipal(String contactPrincipal) { this.contactPrincipal = contactPrincipal; }
+
+    public String getPieceJointe() { return pieceJointe; }
+    public void setPieceJointe(String pieceJointe) { this.pieceJointe = pieceJointe; }
 }
