@@ -1,68 +1,107 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  useNavigate,
 } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import Dashboard from "./pages/Dashboard";
 import IncidentForm from "./pages/IncidentForm";
 import IncidentsList from "./pages/IncidentsList";
+import IncidentEdit from "./pages/IncidentEdit";
+import IncidentQualify from "./pages/IncidentQualify";
 import SourcesAdmin from "./pages/SourcesAdmin";
 import UsersAdmin from "./pages/UsersAdmin";
-import EntiteAdmin from "./pages/EntiteAdmin";
-import Login from "./pages/Login";
-import { UserProvider, useUser } from "./UserContext";
-import IncidentEdit from "./pages/IncidentEdit";
+import EntitiesAdmin from "./pages/EntitiesAdmin";
+import LoginPage from "./pages/LoginPage";
 
-function AppRoutes() {
-  const { user, login, logout } = useUser();
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    !!localStorage.getItem("userName")
+  );
 
-  if (!user) {
-    return <Login onLogin={login} />;
-  }
+  // Fonction appelée lors d'un login réussi
+  const handleLogin = (user) => {
+    localStorage.setItem("userName", user.nom || user.email || "Utilisateur");
+    setIsLoggedIn(true);
+    // Redirection automatique
+    window.location.href = "/";
+  };
+
+  // Fonction appelée lors du logout
+  const handleLogout = () => {
+    localStorage.removeItem("userName");
+    setIsLoggedIn(false);
+    window.location.href = "/login";
+  };
 
   return (
-    <div style={{ display: "flex" }}>
-      <Sidebar />
-      <main style={{ flexGrow: 1, padding: "30px" }}>
-        <div
+    <Router>
+      <div style={{ display: "flex" }}>
+        {isLoggedIn && <Sidebar onLogout={handleLogout} />}
+        <main
           style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "center",
+            flexGrow: 1,
+            padding: "30px",
+            minHeight: "100vh",
+            background: "#f5f7fa",
           }}
         >
-          <span>
-            Bienvenue,{" "}
-            <b>
-              {user.prenom} {user.nom}
-            </b>
-          </span>
-          <button style={{ marginLeft: 16 }} onClick={logout}>
-            Déconnexion
-          </button>
-        </div>
-        <Routes>
-          <Route path="/" element={<Navigate to="/ajouter" />} />
-          <Route path="/ajouter" element={<IncidentForm />} />
-          <Route path="/liste" element={<IncidentsList />} />
-          <Route path="/admin-sources" element={<SourcesAdmin />} />
-          <Route path="/admin-users" element={<UsersAdmin />} />
-          <Route path="/admin-entites" element={<EntiteAdmin />} />
-          <Route path="/incident/:id" element={<IncidentEdit />} />
-        </Routes>
-      </main>
-    </div>
+          <Routes>
+            <Route
+              path="/login"
+              element={<LoginPage onLogin={handleLogin} />}
+            />
+            <Route
+              path="/"
+              element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/dashboard"
+              element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/ajouter"
+              element={isLoggedIn ? <IncidentForm /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/liste"
+              element={
+                isLoggedIn ? <IncidentsList /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/incident/:id/qualifier"
+              element={
+                isLoggedIn ? <IncidentQualify /> : <Navigate to="/login" />
+              }
+            />
+            <Route
+              path="/incident/:id"
+              element={isLoggedIn ? <IncidentEdit /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/admin-sources"
+              element={isLoggedIn ? <SourcesAdmin /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/admin-utilisateurs"
+              element={isLoggedIn ? <UsersAdmin /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/admin-entites"
+              element={
+                isLoggedIn ? <EntitiesAdmin /> : <Navigate to="/login" />
+              }
+            />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 
-export default function App() {
-  return (
-    <UserProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
-    </UserProvider>
-  );
-}
+export default App;

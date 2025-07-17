@@ -10,6 +10,7 @@ public class Incident {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Utilisateur (optionnel)
     @ManyToOne
     private Utilisateur utilisateur;
 
@@ -20,8 +21,7 @@ public class Incident {
     @JoinTable(
         name = "incident_risque",
         joinColumns = @JoinColumn(name = "incident_id"),
-        inverseJoinColumns = @JoinColumn(name = "risque_id")
-    )
+        inverseJoinColumns = @JoinColumn(name = "risque_id"))
     private Set<Risque> risques;
 
     private LocalDate dateRemontee;
@@ -29,22 +29,22 @@ public class Incident {
     @ManyToOne
     private SourceIncident sourceIncident;
 
-    private String statutIncident; // Nouveau, En cours, Traité, Abandonné
-
+    private String statutIncident;
     private String description;
     private String prioriteMetier;
     private Double montantPertes;
-    private String frequence;
     private Integer nombre;
     private String periode;
-    private String prioriteIt;
+
+    private String prioriteIt; // Qualification
     private LocalDate dateProposee;
     private String contactPrincipal;
 
-    // --- PJ ---
-    private String pieceJointe; // nom du fichier si PJ présente, sinon null
+    // Pièces jointes
+    private String pieceJointe; // Pour la remontée
+    private String pieceJointeQualification; // Pour la qualification
 
-    // Getters & Setters
+    // GETTERS & SETTERS
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -76,9 +76,6 @@ public class Incident {
     public Double getMontantPertes() { return montantPertes; }
     public void setMontantPertes(Double montantPertes) { this.montantPertes = montantPertes; }
 
-    public String getFrequence() { return frequence; }
-    public void setFrequence(String frequence) { this.frequence = frequence; }
-
     public Integer getNombre() { return nombre; }
     public void setNombre(Integer nombre) { this.nombre = nombre; }
 
@@ -96,4 +93,7 @@ public class Incident {
 
     public String getPieceJointe() { return pieceJointe; }
     public void setPieceJointe(String pieceJointe) { this.pieceJointe = pieceJointe; }
+
+    public String getPieceJointeQualification() { return pieceJointeQualification; }
+    public void setPieceJointeQualification(String pieceJointeQualification) { this.pieceJointeQualification = pieceJointeQualification; }
 }

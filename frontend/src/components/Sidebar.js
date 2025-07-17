@@ -1,37 +1,47 @@
-import React from "react";
+import React, { useContext } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Drawer,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
+  Collapse,
   Divider,
   Box,
   Typography,
-  Button,
-  Collapse,
 } from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
-import BugReportIcon from "@mui/icons-material/BugReport";
+import HomeIcon from "@mui/icons-material/Home";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import SourceIcon from "@mui/icons-material/Source";
-import GroupIcon from "@mui/icons-material/Group";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { useUser } from "../UserContext";
+import PeopleIcon from "@mui/icons-material/People";
+import ApartmentIcon from "@mui/icons-material/Apartment";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { useState } from "react";
 
-const drawerWidth = 250;
+const drawerWidth = 240;
 
 export default function Sidebar() {
+  const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useUser();
+  const [openSettings, setOpenSettings] = useState(false);
 
-  // Pour le menu "Paramètres"
-  const [openParams, setOpenParams] = useState(true);
+  // Exemple d'affichage du nom utilisateur connecté (si stocké en localStorage)
+  const userName = localStorage.getItem("userName") || "Utilisateur";
+
+  const handleSettingsClick = () => {
+    setOpenSettings(!openSettings);
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
 
   return (
     <Drawer
@@ -39,123 +49,125 @@ export default function Sidebar() {
       sx={{
         width: drawerWidth,
         flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: drawerWidth,
-          boxSizing: "border-box",
-          background: "#f6f7fb",
-        },
+        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box" },
       }}
     >
-      <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-        {/* Titre et nom utilisateur */}
-        <Box
-          sx={{
-            p: 3,
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            background: "#e8edfa",
-          }}
-        >
-          <AccountCircleIcon sx={{ fontSize: 36, color: "#1976d2" }} />
-          <Box>
-            <Typography variant="subtitle2" sx={{ color: "#888" }}>
-              Connecté
-            </Typography>
-            <Typography variant="subtitle1" fontWeight={600}>
-              {user ? `${user.prenom} ${user.nom}` : ""}
-            </Typography>
-          </Box>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          bgcolor: "#e8edfa",
+        }}
+      >
+        <Box sx={{ p: 2, pb: 0 }}>
+          <Typography variant="h6" fontWeight={700}>
+            Gestion Incidents
+          </Typography>
+          <Typography variant="subtitle2" color="text.secondary">
+            Bonjour, {userName}
+          </Typography>
         </Box>
+        <Divider sx={{ mb: 1 }} />
 
-        {/* Menu principal */}
-        <List sx={{ flexGrow: 1 }}>
-          <ListItem
-            button
-            component={Link}
-            to="/ajouter"
-            selected={location.pathname === "/ajouter"}
-          >
-            <ListItemIcon>
-              <AddCircleOutlineIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText primary="Nouvel incident" />
+        <List>
+          {/* Accueil */}
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={
+                location.pathname === "/" || location.pathname === "/dashboard"
+              }
+              onClick={() => navigate("/")}
+            >
+              <ListItemIcon>
+                <HomeIcon color="primary" />
+              </ListItemIcon>
+              <ListItemText primary="Accueil" />
+            </ListItemButton>
           </ListItem>
-          <ListItem
-            button
-            component={Link}
-            to="/liste"
-            selected={location.pathname === "/liste"}
-          >
-            <ListItemIcon>
-              <ListAltIcon color="primary" />
-            </ListItemIcon>
-            <ListItemText primary="Liste des incidents" />
-          </ListItem>
-          <Divider sx={{ my: 1 }} />
 
-          {/* Menu Paramètres */}
-          <ListItem button onClick={() => setOpenParams((o) => !o)}>
-            <ListItemIcon>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="Paramètres" />
-            {openParams ? <ExpandLess /> : <ExpandMore />}
+          {/* Saisie d'incident */}
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={location.pathname === "/ajouter"}
+              onClick={() => navigate("/ajouter")}
+            >
+              <ListItemIcon>
+                <AddCircleOutlineIcon />
+              </ListItemIcon>
+              <ListItemText primary="Remontée" />
+            </ListItemButton>
           </ListItem>
-          <Collapse in={openParams} timeout="auto" unmountOnExit>
+
+          {/* Liste */}
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={location.pathname === "/liste"}
+              onClick={() => navigate("/liste")}
+            >
+              <ListItemIcon>
+                <ListAltIcon />
+              </ListItemIcon>
+              <ListItemText primary="Liste" />
+            </ListItemButton>
+          </ListItem>
+
+          {/* Paramètres avec sous-menu */}
+          <ListItem disablePadding>
+            <ListItemButton onClick={handleSettingsClick}>
+              <ListItemIcon>
+                <SettingsIcon />
+              </ListItemIcon>
+              <ListItemText primary="Paramètres" />
+              {openSettings ? <ExpandLess /> : <ExpandMore />}
+            </ListItemButton>
+          </ListItem>
+          <Collapse in={openSettings} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              <ListItem
-                button
-                component={Link}
-                to="/admin-sources"
-                selected={location.pathname === "/admin-sources"}
+              <ListItemButton
                 sx={{ pl: 4 }}
+                selected={location.pathname === "/admin-sources"}
+                onClick={() => navigate("/admin-sources")}
               >
                 <ListItemIcon>
                   <SourceIcon />
                 </ListItemIcon>
                 <ListItemText primary="Sources d'incident" />
-              </ListItem>
-              <ListItem
-                button
-                component={Link}
-                to="/admin-entites"
-                selected={location.pathname === "/admin-entites"}
+              </ListItemButton>
+              <ListItemButton
                 sx={{ pl: 4 }}
+                selected={location.pathname === "/admin-utilisateurs"}
+                onClick={() => navigate("/admin-utilisateurs")}
               >
                 <ListItemIcon>
-                  <GroupIcon />
-                </ListItemIcon>
-                <ListItemText primary="Entités" />
-              </ListItem>
-              <ListItem
-                button
-                component={Link}
-                to="/admin-users"
-                selected={location.pathname === "/admin-users"}
-                sx={{ pl: 4 }}
-              >
-                <ListItemIcon>
-                  <AccountCircleIcon />
+                  <PeopleIcon />
                 </ListItemIcon>
                 <ListItemText primary="Utilisateurs" />
-              </ListItem>
+              </ListItemButton>
+              <ListItemButton
+                sx={{ pl: 4 }}
+                selected={location.pathname === "/admin-entites"}
+                onClick={() => navigate("/admin-entites")}
+              >
+                <ListItemIcon>
+                  <ApartmentIcon />
+                </ListItemIcon>
+                <ListItemText primary="Entités" />
+              </ListItemButton>
             </List>
           </Collapse>
-        </List>
 
-        {/* Bouton Déconnexion tout en bas */}
-        <Box sx={{ p: 2, mt: "auto" }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            fullWidth
-            onClick={logout}
-            startIcon={<AccountCircleIcon />}
-          >
-            Déconnexion
-          </Button>
-        </Box>
+          {/* Logout en bas */}
+          <Box sx={{ flexGrow: 1 }} />
+          <ListItem disablePadding>
+            <ListItemButton onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon color="error" />
+              </ListItemIcon>
+              <ListItemText primary="Déconnexion" />
+            </ListItemButton>
+          </ListItem>
+        </List>
       </Box>
     </Drawer>
   );

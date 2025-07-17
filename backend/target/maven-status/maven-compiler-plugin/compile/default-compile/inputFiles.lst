@@ -4,6 +4,7 @@
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/EntiteController.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/IncidentController.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/SourceIncidentController.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/StatsController.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/UtilisateurController.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/model/Entite.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/model/EquipeEnCharge.java

@@ -79,4 +79,17 @@ public class UtilisateurController {
     public void delete(@PathVariable Long id) {
         utilisateurRepository.deleteById(id);
     }
+
+    @PostMapping("/login")
+public ResponseEntity<?> login(@RequestBody Map<String, String> creds) {
+    String mail = creds.get("mail");
+    String password = creds.get("password");
+    Utilisateur user = utilisateurRepository.findByMail(mail);
+    if (user != null && user.getPassword().equals(password)) {
+        user.setPassword(null); // Sécurité : ne JAMAIS renvoyer le password
+        return ResponseEntity.ok(user);
+    } else {
+        return ResponseEntity.status(401).body("Login ou mot de passe incorrect");
+    }
+}
 }
