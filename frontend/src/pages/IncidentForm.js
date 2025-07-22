@@ -1,3 +1,5 @@
+// ✅ Fichier complet IncidentForm.js avec menus déroulants à largeur fixe (300px)
+
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -10,240 +12,398 @@ import {
   FormControl,
   InputLabel,
   Alert,
-  RadioGroup,
-  Radio,
-  FormLabel,
-  FormControlLabel,
+  Grid,
+  InputAdornment,
 } from "@mui/material";
+import PersonIcon from "@mui/icons-material/Person";
+import ApartmentIcon from "@mui/icons-material/Apartment";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import ReportIcon from "@mui/icons-material/ReportProblem";
+import WarningIcon from "@mui/icons-material/Warning";
+import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import BoltIcon from "@mui/icons-material/Bolt";
+import InfoIcon from "@mui/icons-material/Info";
 
-const PRIORITIES = ["P0", "P1", "P2", "P3"];
-const PERIODS = ["Semaine", "Mois", "Trimestre", "An"];
+const TYPES_RISQUE = [
+  "Fraude",
+  "Risque opérationnel",
+  "Risque stratégique",
+  "Autre",
+];
+const CRITICITES = ["Faible", "Moyenne", "Élevée", "Critique"];
+const EVOLUTIONS = ["Process", "Informatique", "Autre"];
+const URGENCES = ["Immediête", "Sous 1 mois", "À planifier"];
+const STATUTS = ["Nouveau", "En cours", "Résolu", "Clos"];
 
-export default function IncidentForm() {
+export default function IncidentForm({ user }) {
   const [form, setForm] = useState({
-    description: "",
-    prioriteMetier: "P2",
-    montantPertes: "",
-    nombre: "",
-    periode: "Mois",
-    sourceIncidentId: "",
+    nomDeclarant: user ? `${user.prenom} ${user.nom}` : "",
+    serviceEntite: user && user.entite ? user.entite.nom : "",
     dateRemontee: new Date().toISOString().slice(0, 10),
-    pieceJointe: null,
-    statutIncident: "Nouveau", // Valeur par défaut invisible
+    statutIncident: "Nouveau",
+    typeRisque: "",
+    description: "",
+    origineRisque: "",
+    volumeConcerne: "",
+    criticite: "",
+    consequencesPotentielles: "",
+    sourceIncidentId: "",
+    referenceAudit: "",
+    exigenceReglementaire: "",
+    propositionEvolution: "",
+    urgenceMiseEnOeuvre: "",
+    commentairesComplementaires: "",
   });
+
   const [sources, setSources] = useState([]);
   const [alert, setAlert] = useState("");
-  const [uploadFileName, setUploadFileName] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/sources-incidents")
+    fetch("http://localhost:8080/api/sources-incidents", {
+      credentials: "include", // <-- AJOUT IMPORTANT
+    })
       .then((res) => res.json())
-      .then((data) => setSources(data));
+      .then((data) => {
+        console.log("✅ Réponse sources :", data);
+        if (Array.isArray(data)) {
+          setSources(data);
+        } else if (Array.isArray(data.sources)) {
+          setSources(data.sources);
+        } else {
+          console.error("Format inattendu de la réponse :", data);
+          setSources([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Erreur lors du chargement des sources :", err);
+        setSources([]);
+      });
   }, []);
 
   const handleChange = (e) => {
-    const { name, value, type } = e.target;
-    setForm((f) => ({
-      ...f,
-      [name]: type === "number" ? Number(value) : value,
-    }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileChange = (e) => {
-    setForm((f) => ({ ...f, pieceJointe: e.target.files[0] }));
-    setUploadFileName(e.target.files[0]?.name || "");
-  };
-
-  const handleRemoveFile = () => {
-    setForm((f) => ({ ...f, pieceJointe: null }));
-    setUploadFileName("");
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const formData = new FormData();
-    formData.append("description", form.description);
-    formData.append("prioriteMetier", form.prioriteMetier);
-    formData.append("montantPertes", form.montantPertes || 0);
-    formData.append("nombre", form.nombre || 0);
-    formData.append("periode", form.periode);
-    formData.append("sourceIncidentId", form.sourceIncidentId);
-    formData.append("dateRemontee", form.dateRemontee);
-    formData.append("statutIncident", form.statutIncident); // Invisible, envoyé "Nouveau"
-    if (form.pieceJointe) {
-      formData.append("pieceJointe", form.pieceJointe);
+    if (!form.description.trim()) {
+      setAlert("La description est obligatoire.");
+      return;
     }
-
-    fetch("http://localhost:8080/api/incidents", {
-      method: "POST",
-      body: formData,
-    }).then((res) => {
+    try {
+      const res = await fetch("/api/incidents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          sourceIncident: form.sourceIncidentId
+            ? { id: parseInt(form.sourceIncidentId) }
+            : null,
+        }),
+      });
       if (res.ok) {
-        setAlert("Incident ajouté !");
-        setForm({
-          description: "",
-          prioriteMetier: "P2",
-          montantPertes: "",
-          nombre: "",
-          periode: "Mois",
-          sourceIncidentId: "",
-          dateRemontee: new Date().toISOString().slice(0, 10),
-          pieceJointe: null,
-          statutIncident: "Nouveau",
-        });
-        setUploadFileName("");
-        setTimeout(() => setAlert(""), 1800);
+        setAlert("Incident enregistré avec succès");
       } else {
-        setAlert("Erreur lors de l'ajout de l'incident");
+        const errorData = await res.json();
+        const msg = Object.values(errorData).join(", ");
+        setAlert(`Erreur: ${msg}`);
       }
-    });
+    } catch (err) {
+      console.error(err);
+      setAlert("Erreur réseau");
+    }
   };
+
+  const fixedSelectStyle = { width: 300 }; // ✅ Largeur fixe des champs Select
+
+  const renderSection = (title, fields, icon) => (
+    <Paper
+      sx={{
+        p: 3,
+        mb: 4,
+        borderLeft: "5px solid #1976d2",
+        backgroundColor: "#f9f9f9",
+      }}
+      elevation={2}
+    >
+      <Typography
+        variant="h6"
+        gutterBottom
+        sx={{ display: "flex", alignItems: "center", mb: 2 }}
+      >
+        {icon && <Box mr={1}>{icon}</Box>} {title}
+      </Typography>
+      <Grid container spacing={2}>
+        {fields}
+      </Grid>
+    </Paper>
+  );
 
   return (
-    <Box maxWidth={600} mx="auto" mt={6}>
-      <Paper sx={{ p: 4, borderRadius: 4, boxShadow: 2 }}>
-        <Typography variant="h5" fontWeight={700} mb={3}>
-          Remontée d’un incident
-        </Typography>
-
-        {alert && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {alert}
-          </Alert>
+    <Box maxWidth="lg" mx="auto" mt={4}>
+      <Typography variant="h4" gutterBottom fontWeight={600} textAlign="center">
+        🛡️ Déclaration d'incident – Programme Securisk
+      </Typography>
+      {alert && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {alert}
+        </Alert>
+      )}
+      <form onSubmit={handleSubmit}>
+        {renderSection(
+          "Informations Générales",
+          [
+            <Grid item xs={12} sm={4} key="nomDeclarant">
+              <TextField
+                name="nomDeclarant"
+                label="Nom du déclarant"
+                fullWidth
+                value={form.nomDeclarant}
+                onChange={handleChange}
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>,
+            <Grid item xs={12} sm={4} key="serviceEntite">
+              <TextField
+                name="serviceEntite"
+                label="Service / Entité"
+                fullWidth
+                value={form.serviceEntite}
+                onChange={handleChange}
+                required
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <ApartmentIcon />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>,
+            <Grid item xs={12} sm={4} key="dateRemontee">
+              <TextField
+                type="date"
+                name="dateRemontee"
+                label="Date de la remontée"
+                fullWidth
+                value={form.dateRemontee}
+                onChange={handleChange}
+                InputLabelProps={{ shrink: true }}
+                required
+              />
+            </Grid>,
+            <Grid item xs={12} sm={4} key="statutIncident">
+              <FormControl sx={fixedSelectStyle} required>
+                <InputLabel>Statut de l'incident</InputLabel>
+                <Select
+                  name="statutIncident"
+                  value={form.statutIncident}
+                  onChange={handleChange}
+                >
+                  {STATUTS.map((val) => (
+                    <MenuItem key={val} value={val}>
+                      {val}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>,
+          ],
+          <InfoIcon />
         )}
 
-        <form onSubmit={handleSubmit} encType="multipart/form-data">
-          <TextField
-            label="Description"
-            name="description"
-            fullWidth
-            margin="normal"
-            value={form.description}
-            onChange={handleChange}
-            required
-          />
-
-          <FormControl fullWidth margin="normal">
-            <FormLabel id="priorite-radio-group-label">Priorité</FormLabel>
-            <RadioGroup
-              row
-              aria-labelledby="priorite-radio-group-label"
-              name="prioriteMetier"
-              value={form.prioriteMetier}
-              onChange={handleChange}
-            >
-              {PRIORITIES.map((p) => (
-                <FormControlLabel
-                  key={p}
-                  value={p}
-                  control={<Radio color="primary" />}
-                  label={p}
-                />
-              ))}
-            </RadioGroup>
-          </FormControl>
-
-          <FormControl fullWidth margin="normal">
-            <InputLabel id="source-label">Source</InputLabel>
-            <Select
-              labelId="source-label"
-              name="sourceIncidentId"
-              value={form.sourceIncidentId}
-              label="Source"
-              onChange={handleChange}
-              required
-            >
-              <MenuItem value="">Choisir…</MenuItem>
-              {sources.map((src) => (
-                <MenuItem key={src.id} value={src.id}>
-                  {src.nom}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <TextField
-            label="Montant des pertes"
-            name="montantPertes"
-            type="number"
-            fullWidth
-            margin="normal"
-            value={form.montantPertes}
-            onChange={handleChange}
-            InputProps={{ endAdornment: <span>€</span> }}
-          />
-          <Box display="flex" gap={2} alignItems="center">
-            <TextField
-              label="Nombre d'incidents"
-              name="nombre"
-              type="number"
-              margin="normal"
-              value={form.nombre}
-              onChange={handleChange}
-              sx={{ width: 120 }}
-            />
-            <FormControl margin="normal" sx={{ minWidth: 130 }}>
-              <InputLabel id="periode-label">Période</InputLabel>
-              <Select
-                labelId="periode-label"
-                name="periode"
-                value={form.periode}
-                label="Période"
+        {renderSection(
+          "Description du Risque",
+          [
+            <Grid item xs={12} sm={4} key="typeRisque">
+              <FormControl sx={fixedSelectStyle}>
+                <InputLabel>Type de risque</InputLabel>
+                <Select
+                  name="typeRisque"
+                  value={form.typeRisque}
+                  onChange={handleChange}
+                >
+                  {TYPES_RISQUE.map((val) => (
+                    <MenuItem key={val} value={val}>
+                      {val}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>,
+            <Grid item xs={12} sm={5} key="description">
+              <TextField
+                multiline
+                rows={3}
+                fullWidth
+                name="description"
+                label="Description détaillée du risque"
+                value={form.description}
                 onChange={handleChange}
-              >
-                {PERIODS.map((p) => (
-                  <MenuItem key={p} value={p}>
-                    {p}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-
-          <TextField
-            label="Date de remontée"
-            name="dateRemontee"
-            type="date"
-            fullWidth
-            margin="normal"
-            value={form.dateRemontee}
-            onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
-          />
-
-          {/* Champ fichier PJ */}
-          <Box mt={2} mb={2}>
-            <Button variant="outlined" component="label">
-              {uploadFileName
-                ? "Changer la pièce jointe"
-                : "Ajouter une pièce jointe"}
-              <input
-                type="file"
-                hidden
-                onChange={handleFileChange}
-                accept=".pdf,image/*"
+                required
               />
-            </Button>
-            {uploadFileName && (
-              <Box component="span" ml={2}>
-                {uploadFileName}{" "}
-                <Button color="error" onClick={handleRemoveFile} size="small">
-                  Supprimer
-                </Button>
-              </Box>
-            )}
-          </Box>
+            </Grid>,
+            <Grid item xs={12} sm={3} key="origineRisque">
+              <TextField
+                fullWidth
+                name="origineRisque"
+                label="Origine du risque"
+                value={form.origineRisque}
+                onChange={handleChange}
+              />
+            </Grid>,
+          ],
+          <ReportIcon />
+        )}
 
-          {/* Champ caché pour le statut */}
-          <input type="hidden" name="statutIncident" value="Nouveau" />
+        {renderSection(
+          "Données d’impact",
+          [
+            <Grid item xs={12} sm={3} key="volumeConcerne">
+              <TextField
+                name="volumeConcerne"
+                label="Volume concerné"
+                fullWidth
+                value={form.volumeConcerne}
+                onChange={handleChange}
+              />
+            </Grid>,
+            <Grid item xs={12} sm={3} key="criticite">
+              <FormControl sx={fixedSelectStyle}>
+                <InputLabel>Criticité</InputLabel>
+                <Select
+                  name="criticite"
+                  value={form.criticite}
+                  onChange={handleChange}
+                >
+                  {CRITICITES.map((val) => (
+                    <MenuItem key={val} value={val}>
+                      {val}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>,
+            <Grid item xs={12} sm={6} key="consequencesPotentielles">
+              <TextField
+                name="consequencesPotentielles"
+                label="Conséquences potentielles"
+                fullWidth
+                multiline
+                rows={2}
+                value={form.consequencesPotentielles}
+                onChange={handleChange}
+              />
+            </Grid>,
+          ],
+          <WarningIcon />
+        )}
 
-          <Box mt={3} display="flex" gap={2}>
-            <Button type="submit" variant="contained" color="primary">
-              Enregistrer
-            </Button>
-          </Box>
-        </form>
-      </Paper>
+        {renderSection(
+          "Éléments de Conformité / Audit",
+          [
+            <Grid item xs={12} sm={4} key="sourceIncidentId">
+              <FormControl sx={fixedSelectStyle}>
+                <InputLabel>Source de la détection</InputLabel>
+                <Select
+                  name="sourceIncidentId"
+                  value={form.sourceIncidentId}
+                  onChange={handleChange}
+                >
+                  {sources.map((source) => (
+                    <MenuItem key={source.id} value={source.id}>
+                      {source.nom}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>,
+            <Grid item xs={12} sm={4} key="referenceAudit">
+              <TextField
+                fullWidth
+                name="referenceAudit"
+                label="Référence du rapport / audit"
+                value={form.referenceAudit}
+                onChange={handleChange}
+              />
+            </Grid>,
+            <Grid item xs={12} sm={4} key="exigenceReglementaire">
+              <TextField
+                fullWidth
+                name="exigenceReglementaire"
+                label="Exigence réglementaire / politique interne"
+                value={form.exigenceReglementaire}
+                onChange={handleChange}
+              />
+            </Grid>,
+          ],
+          <VerifiedUserIcon />
+        )}
+
+        {renderSection(
+          "Actions recommandées",
+          [
+            <Grid item xs={12} sm={4} key="propositionEvolution">
+              <FormControl sx={fixedSelectStyle}>
+                <InputLabel>Proposition d'évolution</InputLabel>
+                <Select
+                  name="propositionEvolution"
+                  value={form.propositionEvolution}
+                  onChange={handleChange}
+                >
+                  {EVOLUTIONS.map((val) => (
+                    <MenuItem key={val} value={val}>
+                      {val}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>,
+            <Grid item xs={12} sm={4} key="urgenceMiseEnOeuvre">
+              <FormControl sx={fixedSelectStyle}>
+                <InputLabel>Urgence de la mise en œuvre</InputLabel>
+                <Select
+                  name="urgenceMiseEnOeuvre"
+                  value={form.urgenceMiseEnOeuvre}
+                  onChange={handleChange}
+                >
+                  {URGENCES.map((val) => (
+                    <MenuItem key={val} value={val}>
+                      {val}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>,
+            <Grid item xs={12} sm={4} key="commentairesComplementaires">
+              <TextField
+                fullWidth
+                multiline
+                rows={2}
+                name="commentairesComplementaires"
+                label="Commentaires / précisions complémentaires"
+                value={form.commentairesComplementaires}
+                onChange={handleChange}
+              />
+            </Grid>,
+          ],
+          <BoltIcon />
+        )}
+
+        <Box textAlign="right" mt={2}>
+          <Button type="submit" variant="contained" size="large">
+            Soumettre l’incident
+          </Button>
+        </Box>
+      </form>
     </Box>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -18,24 +18,51 @@ import EntitiesAdmin from "./pages/EntitiesAdmin";
 import LoginPage from "./pages/LoginPage";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    !!localStorage.getItem("userName")
-  );
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Fonction appelée lors d'un login réussi
+  useEffect(() => {
+    const checkSession = async () => {
+      console.log("✅ App.js – Vérification de la session...");
+      try {
+        const res = await fetch("http://localhost:8080/api/users/me", {
+          credentials: "include",
+        });
+
+        console.log("✅ Requête /me envoyée");
+
+        if (res.ok) {
+          const user = await res.json();
+          console.log("✅ Utilisateur connecté :", user);
+          setIsLoggedIn(true);
+        } else {
+          console.warn("⚠️ Requête /me retournée avec status", res.status);
+          setIsLoggedIn(false);
+        }
+      } catch (err) {
+        console.error("❌ Erreur vérification session:", err);
+        setIsLoggedIn(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+  }, []);
+
   const handleLogin = (user) => {
     localStorage.setItem("userName", user.nom || user.email || "Utilisateur");
+    localStorage.setItem("userId", user.id);
+    localStorage.setItem("entite", user.entite?.libelle || "");
     setIsLoggedIn(true);
-    // Redirection automatique
-    window.location.href = "/";
   };
 
-  // Fonction appelée lors du logout
   const handleLogout = () => {
-    localStorage.removeItem("userName");
+    localStorage.clear();
     setIsLoggedIn(false);
-    window.location.href = "/login";
   };
+
+  if (loading) return null; // Tu peux mettre un spinner ici
 
   return (
     <Router>
@@ -46,13 +73,19 @@ function App() {
             flexGrow: 1,
             padding: "30px",
             minHeight: "100vh",
-            background: "#f5f7fa",
+            background: "None",
           }}
         >
           <Routes>
             <Route
               path="/login"
-              element={<LoginPage onLogin={handleLogin} />}
+              element={
+                isLoggedIn ? (
+                  <Navigate to="/" />
+                ) : (
+                  <LoginPage onLogin={handleLogin} />
+                )
+              }
             />
             <Route
               path="/"

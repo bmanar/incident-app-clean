@@ -1,6 +1,7 @@
 package com.example.backend.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 import java.util.Set;
 
@@ -10,7 +11,6 @@ public class Incident {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Utilisateur (optionnel)
     @ManyToOne
     private Utilisateur utilisateur;
 
@@ -24,76 +24,146 @@ public class Incident {
         inverseJoinColumns = @JoinColumn(name = "risque_id"))
     private Set<Risque> risques;
 
+    @NotNull
     private LocalDate dateRemontee;
 
     @ManyToOne
     private SourceIncident sourceIncident;
 
     private String statutIncident;
+
+    @NotBlank
     private String description;
+
     private String prioriteMetier;
     private Double montantPertes;
     private Integer nombre;
     private String periode;
-
-    private String prioriteIt; // Qualification
+    private String prioriteIt;
     private LocalDate dateProposee;
     private String contactPrincipal;
 
-    // Pièces jointes
-    private String pieceJointe; // Pour la remontée
-    private String pieceJointeQualification; // Pour la qualification
+    // — Champs ajoutés et validés —
+    @NotBlank @Size(max = 255)
+    private String nomDeclarant;
 
-    // GETTERS & SETTERS
+    @NotBlank @Size(max = 255)
+    private String serviceEntite;
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    @NotBlank @Size(max = 255)
+    private String typeRisque;
 
-    public Utilisateur getUtilisateur() { return utilisateur; }
-    public void setUtilisateur(Utilisateur utilisateur) { this.utilisateur = utilisateur; }
+    @Size(max = 255)
+    private String origineRisque;
 
-    public EquipeEnCharge getEquipeEnCharge() { return equipeEnCharge; }
-    public void setEquipeEnCharge(EquipeEnCharge equipeEnCharge) { this.equipeEnCharge = equipeEnCharge; }
+    @Size(max = 255)
+    private String volumeConcerne;
 
-    public Set<Risque> getRisques() { return risques; }
-    public void setRisques(Set<Risque> risques) { this.risques = risques; }
+    @NotBlank @Size(max = 255)
+    private String criticite;
 
-    public LocalDate getDateRemontee() { return dateRemontee; }
-    public void setDateRemontee(LocalDate dateRemontee) { this.dateRemontee = dateRemontee; }
+    @Size(max = 1000)
+    private String consequencesPotentielles;
 
-    public SourceIncident getSourceIncident() { return sourceIncident; }
-    public void setSourceIncident(SourceIncident sourceIncident) { this.sourceIncident = sourceIncident; }
+    @Size(max = 255)
+    private String referenceAudit;
 
-    public String getStatutIncident() { return statutIncident; }
-    public void setStatutIncident(String statutIncident) { this.statutIncident = statutIncident; }
+    @Size(max = 255)
+    private String exigenceReglementaire;
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    @NotBlank @Size(max = 255)
+    private String propositionEvolution;
 
-    public String getPrioriteMetier() { return prioriteMetier; }
-    public void setPrioriteMetier(String prioriteMetier) { this.prioriteMetier = prioriteMetier; }
+    @NotBlank @Size(max = 255)
+    private String urgenceMiseEnOeuvre;
 
-    public Double getMontantPertes() { return montantPertes; }
-    public void setMontantPertes(Double montantPertes) { this.montantPertes = montantPertes; }
+    @Size(max = 2000)
+    private String commentairesComplementaires;
 
-    public Integer getNombre() { return nombre; }
-    public void setNombre(Integer nombre) { this.nombre = nombre; }
+    // — Getters & Setters —
 
-    public String getPeriode() { return periode; }
-    public void setPeriode(String periode) { this.periode = periode; }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getPrioriteIt() { return prioriteIt; }
-    public void setPrioriteIt(String prioriteIt) { this.prioriteIt = prioriteIt; }
+    public Utilisateur getUtilisateur() {
+        return utilisateur;
+    }
+    public void setUtilisateur(Utilisateur utilisateur) {
+        this.utilisateur = utilisateur;
+    }
 
-    public LocalDate getDateProposee() { return dateProposee; }
-    public void setDateProposee(LocalDate dateProposee) { this.dateProposee = dateProposee; }
+    public EquipeEnCharge getEquipeEnCharge() {
+        return equipeEnCharge;
+    }
+    public void setEquipeEnCharge(EquipeEnCharge equipeEnCharge) {
+        this.equipeEnCharge = equipeEnCharge;
+    }
 
-    public String getContactPrincipal() { return contactPrincipal; }
-    public void setContactPrincipal(String contactPrincipal) { this.contactPrincipal = contactPrincipal; }
+    public Set<Risque> getRisques() {
+        return risques;
+    }
+    public void setRisques(Set<Risque> risques) {
+        this.risques = risques;
+    }
 
-    public String getPieceJointe() { return pieceJointe; }
-    public void setPieceJointe(String pieceJointe) { this.pieceJointe = pieceJointe; }
+    public LocalDate getDateRemontee() {
+        return dateRemontee;
+    }
+    public void setDateRemontee(LocalDate dateRemontee) {
+        this.dateRemontee = dateRemontee;
+    }
 
-    public String getPieceJointeQualification() { return pieceJointeQualification; }
-    public void setPieceJointeQualification(String pieceJointeQualification) { this.pieceJointeQualification = pieceJointeQualification; }
+    public SourceIncident getSourceIncident() {
+        return sourceIncident;
+    }
+    public void setSourceIncident(SourceIncident sourceIncident) {
+        this.sourceIncident = sourceIncident;
+    }
+
+    public String getStatutIncident() {
+        return statutIncident;
+    }
+    public void setStatutIncident(String statutIncident) {
+        this.statutIncident = statutIncident;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    // … continue à coller tous les getters et setters pour les champs ajoutés …
+    
+    public String getNomDeclarant() { return nomDeclarant; }
+    public void setNomDeclarant(String nomDeclarant) { this.nomDeclarant = nomDeclarant; }
+    public String getServiceEntite() { return serviceEntite; }
+    public void setServiceEntite(String serviceEntite) { this.serviceEntite = serviceEntite; }
+    public String getTypeRisque() { return typeRisque; }
+    public void setTypeRisque(String typeRisque) { this.typeRisque = typeRisque; }
+    public String getOrigineRisque() { return origineRisque; }
+    public void setOrigineRisque(String origineRisque) { this.origineRisque = origineRisque; }
+    public String getVolumeConcerne() { return volumeConcerne; }
+    public void setVolumeConcerne(String volumeConcerne) { this.volumeConcerne = volumeConcerne; }
+    public String getCriticite() { return criticite; }
+    public void setCriticite(String criticite) { this.criticite = criticite; }
+    public String getConsequencesPotentielles() { return consequencesPotentielles; }
+    public void setConsequencesPotentielles(String consequencesPotentielles) { this.consequencesPotentielles = consequencesPotentielles; }
+    public String getReferenceAudit() { return referenceAudit; }
+    public void setReferenceAudit(String referenceAudit) { this.referenceAudit = referenceAudit; }
+    public String getExigenceReglementaire() { return exigenceReglementaire; }
+    public void setExigenceReglementaire(String exigenceReglementaire) { this.exigenceReglementaire = exigenceReglementaire; }
+    public String getPropositionEvolution() { return propositionEvolution; }
+    public void setPropositionEvolution(String propositionEvolution) { this.propositionEvolution = propositionEvolution; }
+    public String getUrgenceMiseEnOeuvre() { return urgenceMiseEnOeuvre; }
+    public void setUrgenceMiseEnOeuvre(String urgenceMiseEnOeuvre) { this.urgenceMiseEnOeuvre = urgenceMiseEnOeuvre; }
+    public String getCommentairesComplementaires() { return commentairesComplementaires; }
+    public void setCommentairesComplementaires(String commentairesComplementaires) { this.commentairesComplementaires = commentairesComplementaires; }
+
+    // … complète avec le reste de tes getters & setters existants …
 }

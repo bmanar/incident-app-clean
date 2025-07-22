@@ -19,20 +19,40 @@ export default function LoginPage({ onLogin }) {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // Important : Spring Security attend les champs "username" et "password"
+    const formData = new URLSearchParams();
+    formData.append("username", mail); // même si tu l’appelles "mail" en base
+    formData.append("password", password);
+
     try {
-      const res = await fetch("http://localhost:8080/api/utilisateurs/login", {
+      const res = await fetch("http://localhost:8080/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mail, password }),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        credentials: "include",
+        body: formData.toString(),
       });
+
       if (res.ok) {
-        const user = await res.json();
-        if (onLogin) onLogin(user); // Appelle la fonction passée en prop !
+        // Authentification réussie, on vérifie avec /me
+        const userRes = await fetch("http://localhost:8080/api/users/me", {
+          credentials: "include",
+        });
+
+        if (userRes.ok) {
+          const user = await userRes.json();
+          localStorage.setItem("user", JSON.stringify(user));
+          if (onLogin) onLogin(user);
+        } else {
+          setError("Échec récupération utilisateur après login");
+        }
       } else {
-        const msg = await res.text();
-        setError(msg || "Login ou mot de passe incorrect");
+        setError("Email ou mot de passe incorrect");
       }
     } catch (e) {
+      console.error(e);
       setError("Erreur réseau. Réessayez.");
     } finally {
       setLoading(false);

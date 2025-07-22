@@ -1,11 +1,17 @@
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/BackendApplication.java
-/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/CorsConfig.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/config/CorsConfig.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/config/SecurityBeansConfig.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/config/SecurityConfig.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/AuthController.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/DummySecurityContext.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/EntiteController.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/GlobalExceptionHandler.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/IncidentController.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/SourceIncidentController.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/StatsController.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/UserController.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/UtilisateurController.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/dto/LoginRequest.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/model/Entite.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/model/EquipeEnCharge.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/model/Incident.java
@@ -20,3 +26,7 @@
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/repository/RisqueRepository.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/repository/SourceIncidentRepository.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/repository/UtilisateurRepository.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/service/CustomUserDetailsService.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/service/UtilisateurService.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/service/UtilisateurServiceImpl.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/service/impl/UserDetailsServiceImpl.java
