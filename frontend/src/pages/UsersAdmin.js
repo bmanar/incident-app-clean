@@ -21,11 +21,16 @@ import {
   Select,
   IconButton,
   InputAdornment,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+
+const allRoles = ["Déclarer", "Qualifier", "Administrateur"];
 
 export default function UsersAdmin() {
   const [users, setUsers] = useState([]);
@@ -38,6 +43,7 @@ export default function UsersAdmin() {
     entiteId: "",
     password: "",
     passwordConfirm: "",
+    roles: [],
   });
   const [entites, setEntites] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
@@ -45,16 +51,45 @@ export default function UsersAdmin() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/utilisateurs")
+    fetch("http://localhost:8080/api/utilisateurs", {
+      credentials: "include",
+    })
       .then((res) => res.json())
-      .then(setUsers);
-    fetch("http://localhost:8080/api/entites")
+      .then((data) => {
+        if (Array.isArray(data)) setUsers(data);
+        else console.error("❌ Utilisateurs non conformes :", data);
+      });
+
+    fetch("http://localhost:8080/api/entites", {
+      credentials: "include",
+    })
       .then((res) => res.json())
-      .then(setEntites);
+      .then((data) => {
+        if (Array.isArray(data)) setEntites(data);
+        else console.error("❌ Entités non conformes :", data);
+      });
   }, [open]);
 
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  };
+
+  const handleRoleChange = (role) => {
+    setForm((f) => {
+      const alreadySelected = f.roles.includes(role);
+      let updatedRoles = alreadySelected
+        ? f.roles.filter((r) => r !== role)
+        : [...f.roles, role];
+
+      // Exclusion mutuelle Déclarer <-> Qualifier
+      if (role === "Déclarer" && !alreadySelected) {
+        updatedRoles = updatedRoles.filter((r) => r !== "Qualifier");
+      } else if (role === "Qualifier" && !alreadySelected) {
+        updatedRoles = updatedRoles.filter((r) => r !== "Déclarer");
+      }
+
+      return { ...f, roles: updatedRoles };
+    });
   };
 
   const handleOpen = (user = null) => {
@@ -67,6 +102,7 @@ export default function UsersAdmin() {
         entiteId: user.entite?.id || "",
         password: "",
         passwordConfirm: "",
+        roles: user.roles || [],
       });
     } else {
       setEditId(null);
@@ -77,6 +113,7 @@ export default function UsersAdmin() {
         entiteId: "",
         password: "",
         passwordConfirm: "",
+        roles: [],
       });
     }
     setError("");
@@ -97,12 +134,14 @@ export default function UsersAdmin() {
       setError("Tous les champs sont obligatoires !");
       return;
     }
+
     const data = {
       nom: form.nom,
       prenom: form.prenom,
       mail: form.mail,
       entiteId: form.entiteId,
       password: form.password,
+      roles: form.roles,
     };
 
     const url = editId
@@ -112,6 +151,7 @@ export default function UsersAdmin() {
 
     fetch(url, {
       method,
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
@@ -137,6 +177,7 @@ export default function UsersAdmin() {
           entiteId: "",
           password: "",
           passwordConfirm: "",
+          roles: [],
         });
         setError("");
         setUsers(
@@ -151,6 +192,7 @@ export default function UsersAdmin() {
     if (window.confirm("Supprimer cet utilisateur ?")) {
       fetch(`http://localhost:8080/api/utilisateurs/${id}`, {
         method: "DELETE",
+        credentials: "include",
       }).then(() => setUsers(users.filter((u) => u.id !== id)));
     }
   };
@@ -177,6 +219,7 @@ export default function UsersAdmin() {
                 <TableCell>Prénom</TableCell>
                 <TableCell>Mail</TableCell>
                 <TableCell>Entité</TableCell>
+                <TableCell>Rôles</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -187,6 +230,9 @@ export default function UsersAdmin() {
                   <TableCell>{u.prenom}</TableCell>
                   <TableCell>{u.mail}</TableCell>
                   <TableCell>{u.entite?.nom || ""}</TableCell>
+                  <TableCell>
+                    {Array.isArray(u.roles) ? u.roles.join(", ") : ""}
+                  </TableCell>
                   <TableCell align="right">
                     <IconButton color="primary" onClick={() => handleOpen(u)}>
                       <EditIcon />
@@ -244,13 +290,30 @@ export default function UsersAdmin() {
               onChange={handleChange}
               required
             >
-              {entites.map((e) => (
-                <MenuItem key={e.id} value={e.id}>
-                  {e.nom}
-                </MenuItem>
-              ))}
+              {Array.isArray(entites) &&
+                entites.map((e) => (
+                  <MenuItem key={e.id} value={e.id}>
+                    {e.nom}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
+
+          <FormGroup row sx={{ mt: 2 }}>
+            {allRoles.map((role) => (
+              <FormControlLabel
+                key={role}
+                control={
+                  <Checkbox
+                    checked={form.roles.includes(role)}
+                    onChange={() => handleRoleChange(role)}
+                  />
+                }
+                label={role}
+              />
+            ))}
+          </FormGroup>
+
           <TextField
             label="Mot de passe"
             name="password"

@@ -5,219 +5,235 @@ import {
   Typography,
   TextField,
   Button,
-  MenuItem,
-  Select,
-  InputLabel,
+  CircularProgress,
   FormControl,
-  Radio,
+  FormLabel,
   RadioGroup,
   FormControlLabel,
-  CircularProgress,
-  Divider,
-  InputAdornment,
-  IconButton,
+  Radio,
+  Dialog,
+  DialogTitle,
+  DialogActions,
+  DialogContent,
+  InputLabel,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import DeleteIcon from "@mui/icons-material/Delete";
 
 export default function IncidentQualify() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [incident, setIncident] = useState(null);
-  const [entites, setEntites] = useState([]);
-  const [fields, setFields] = useState({
+  const [form, setForm] = useState({
     prioriteIt: "",
     dateProposee: "",
-    equipeEnChargeId: "",
-    contactPrincipal: "",
-    autrePieceJointe: null,
+    equipeCharge: "",
+    contactPropose: "",
+    fichier: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [fileName, setFileName] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`http://localhost:8080/api/incidents/${id}`).then((res) =>
-        res.json()
-      ),
-      fetch("http://localhost:8080/api/entites").then((res) => res.json()),
-    ]).then(([inc, ent]) => {
-      setIncident(inc);
-      setEntites(ent);
-      setLoading(false);
-    });
+    fetch(`http://localhost:8080/api/incidents/${id}`, {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then(setIncident)
+      .catch((err) => console.error("Erreur incident :", err));
+
+    fetch(`http://localhost:8080/api/qualification/${id}`, {
+      credentials: "include",
+    })
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((q) => {
+        if (q) setForm((f) => ({ ...f, ...q }));
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Erreur qualification :", err);
+        setLoading(false);
+      });
   }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFields((f) => ({ ...f, [name]: value }));
+    setForm((f) => ({ ...f, [name]: value }));
   };
 
   const handleFileChange = (e) => {
-    setFields((f) => ({ ...f, autrePieceJointe: e.target.files[0] }));
-    setFileName(e.target.files[0]?.name || "");
+    setForm((f) => ({ ...f, fichier: e.target.files[0] }));
   };
 
-  const removeFile = () => {
-    setFields((f) => ({ ...f, autrePieceJointe: null }));
-    setFileName("");
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    const formData = new FormData();
-    formData.append("prioriteIt", fields.prioriteIt);
-    formData.append("dateProposee", fields.dateProposee);
-    formData.append("equipeEnChargeId", fields.equipeEnChargeId);
-    formData.append("contactPrincipal", fields.contactPrincipal);
-    if (fields.autrePieceJointe) {
-      formData.append("autrePieceJointe", fields.autrePieceJointe);
+    const data = new FormData();
+    data.append("prioriteIt", form.prioriteIt || "");
+    data.append("dateProposee", form.dateProposee || "");
+    data.append("equipeCharge", form.equipeCharge || "");
+    data.append("contactPropose", form.contactPropose || "");
+    if (form.fichier) {
+      data.append("fichier", form.fichier);
     }
 
-    fetch(`http://localhost:8080/api/incidents/${id}/qualifier`, {
-      method: "PUT",
-      body: formData,
-    }).then((res) => {
+    try {
+      const res = await fetch(
+        `http://localhost:8080/api/qualification-incidents/${id}`,
+        {
+          method: "POST",
+          body: data,
+          credentials: "include",
+        }
+      );
       if (!res.ok) {
-        setError("Erreur lors de la qualification");
-        return;
+        const errData = await res.text();
+        throw new Error("Erreur lors de l'enregistrement : " + errData);
       }
       navigate("/liste");
-    });
+    } catch (err) {
+      console.error(err);
+      setError("Une erreur est survenue : " + err.message);
+    }
   };
 
   if (loading)
     return (
-      <Box textAlign="center" mt={5}>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="60vh"
+      >
         <CircularProgress />
       </Box>
     );
-  if (!incident) return <div>Incident introuvable</div>;
+
+  if (!incident) return <Typography>Incident introuvable</Typography>;
 
   return (
     <Box maxWidth={700} mx="auto" mt={5}>
       <Paper sx={{ p: 4, borderRadius: 3 }}>
-        <Typography variant="h6" mb={2}>
+        <Typography variant="h6" gutterBottom>
           Qualification de l’incident
         </Typography>
-        <Divider sx={{ mb: 2 }}>Informations remontées</Divider>
+
+        {/* Résumé de l'incident */}
         <Box mb={3}>
-          <Typography>
-            <b>Description :</b> {incident.description}
+          <Typography variant="subtitle1" fontWeight={600}>
+            Libellé :
           </Typography>
-          <Typography>
-            <b>Source :</b> {incident.sourceIncident?.nom}
+          <Typography>{incident.libelle}</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>
+            Description :
           </Typography>
-          <Typography>
-            <b>Date :</b> {incident.dateRemontee}
+          <Typography>{incident.description}</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>
+            Criticité :
           </Typography>
-          <Typography>
-            <b>Priorité métier :</b> {incident.prioriteMetier}
+          <Typography>{incident.prioriteMetier}</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>
+            Proposition d’évolution :
           </Typography>
-          <Typography>
-            <b>Montant des pertes :</b> {incident.montantPertes}
+          <Typography>{incident.propositionEvolution || "—"}</Typography>
+          <Typography variant="subtitle1" fontWeight={600}>
+            Urgence de mise en œuvre :
           </Typography>
+          <Typography>{incident.urgenceMep || "—"}</Typography>
         </Box>
-        <Divider sx={{ mb: 2 }}>Qualification</Divider>
+
+        {/* Formulaire de qualification */}
         <form onSubmit={handleSubmit}>
-          <Box mt={2}>
-            <FormControl component="fieldset">
-              <Typography variant="subtitle2" mb={1}>
-                Priorité MOE
-              </Typography>
-              <RadioGroup
-                row
-                name="prioriteIt"
-                value={fields.prioriteIt}
-                onChange={handleChange}
-              >
-                {["P0", "P1", "P2", "P3"].map((p) => (
-                  <FormControlLabel
-                    key={p}
-                    value={p}
-                    control={<Radio />}
-                    label={p}
-                  />
-                ))}
-              </RadioGroup>
-            </FormControl>
-          </Box>
+          <FormControl fullWidth margin="normal">
+            <FormLabel>Priorité IT</FormLabel>
+            <RadioGroup
+              name="prioriteIt"
+              value={form.prioriteIt}
+              onChange={handleChange}
+              row
+            >
+              {["P0", "P1", "P2", "P3"].map((p) => (
+                <FormControlLabel
+                  key={p}
+                  value={p}
+                  control={<Radio />}
+                  label={p}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+
           <TextField
             label="Date proposée"
             name="dateProposee"
             type="date"
-            value={fields.dateProposee}
+            value={form.dateProposee || ""}
             onChange={handleChange}
             fullWidth
             margin="normal"
             InputLabelProps={{ shrink: true }}
           />
-          <FormControl fullWidth margin="normal">
-            <InputLabel id="equipe-label">Equipe en charge</InputLabel>
-            <Select
-              labelId="equipe-label"
-              name="equipeEnChargeId"
-              value={fields.equipeEnChargeId}
-              label="Equipe en charge"
-              onChange={handleChange}
-            >
-              {entites.map((e) => (
-                <MenuItem key={e.id} value={e.id}>
-                  {e.nom}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
           <TextField
-            label="Personne en charge"
-            name="contactPrincipal"
-            value={fields.contactPrincipal}
+            label="Équipe en charge"
+            name="equipeCharge"
+            value={form.equipeCharge || ""}
             onChange={handleChange}
             fullWidth
             margin="normal"
           />
-          {/* Upload autre pièce jointe */}
+          <TextField
+            label="Contact proposé"
+            name="contactPropose"
+            value={form.contactPropose || ""}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+          />
           <Box mt={2}>
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<CloudUploadIcon />}
-              sx={{ mr: 2 }}
-            >
-              Ajouter pièce jointe
-              <input
-                type="file"
-                hidden
-                onChange={handleFileChange}
-                accept="application/pdf,image/*"
-              />
-            </Button>
-            {fileName && (
-              <span>
-                <b>{fileName}</b>
-                <IconButton onClick={removeFile} color="error" size="small">
-                  <DeleteIcon />
-                </IconButton>
-              </span>
-            )}
+            <InputLabel>Pièce jointe IT</InputLabel>
+            <input type="file" onChange={handleFileChange} />
           </Box>
           {error && (
-            <Box color="error.main" mt={2}>
+            <Box mt={2} color="error.main">
               {error}
             </Box>
           )}
-          <Box mt={3} display="flex" gap={2}>
+          <Box mt={4} display="flex" gap={2}>
             <Button variant="contained" type="submit">
-              Enregistrer la qualification
+              Enregistrer
             </Button>
-            <Button onClick={() => navigate("/liste")}>Annuler</Button>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => setShowConfirm(true)}
+            >
+              Annuler
+            </Button>
           </Box>
         </form>
       </Paper>
+
+      {/* Confirmation d’annulation */}
+      <Dialog open={showConfirm} onClose={() => setShowConfirm(false)}>
+        <DialogTitle>Confirmation</DialogTitle>
+        <DialogContent>
+          Voulez-vous vraiment annuler la qualification ?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowConfirm(false)}>Non</Button>
+          <Button
+            onClick={() => navigate("/liste")}
+            color="error"
+            variant="contained"
+          >
+            Oui, annuler
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

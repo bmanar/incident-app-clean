@@ -32,23 +32,35 @@ export default function IncidentEdit() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Charger l’incident + sources
     Promise.all([
-      fetch(`http://localhost:8080/api/incidents/${id}`).then((res) =>
-        res.json()
-      ),
-      fetch(`http://localhost:8080/api/sources-incidents`).then((res) =>
-        res.json()
-      ),
-    ]).then(([inc, srcs]) => {
-      setIncident({
-        ...inc,
-        sourceIncidentId: inc.sourceIncident?.id || "",
-        statutIncident: inc.statutIncident || "Nouveau",
+      fetch(`http://localhost:8080/api/incidents/${id}`, {
+        credentials: "include",
+      }).then((res) => res.json()),
+      fetch(`http://localhost:8080/api/sources-incidents`, {
+        credentials: "include",
+      }).then((res) => res.json()),
+    ])
+      .then(([inc, srcs]) => {
+        setIncident({
+          ...inc,
+          sourceIncidentId: inc.sourceIncident?.id || "",
+          statutIncident: inc.statutIncident || "Nouveau",
+        });
+
+        if (Array.isArray(srcs)) {
+          setSources(srcs);
+        } else {
+          console.error("Sources non conformes :", srcs);
+          setSources([]);
+        }
+
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Erreur lors du chargement :", err);
+        setError("Erreur lors du chargement des données.");
+        setLoading(false);
       });
-      setSources(srcs);
-      setLoading(false);
-    });
   }, [id]);
 
   if (loading)
@@ -73,7 +85,7 @@ export default function IncidentEdit() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
-    // Préparer l'objet à envoyer
+
     const data = {
       description: incident.description,
       prioriteMetier: incident.prioriteMetier,
@@ -84,17 +96,26 @@ export default function IncidentEdit() {
       periode: incident.periode,
       statutIncident: incident.statutIncident,
     };
+
     fetch(`http://localhost:8080/api/incidents/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(data),
-    }).then(async (res) => {
-      if (!res.ok) {
-        setError("Erreur lors de la modification");
-        return;
-      }
-      navigate("/liste");
-    });
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error("Erreur réponse serveur :", errText);
+          setError("Erreur lors de la modification");
+          return;
+        }
+        navigate("/liste");
+      })
+      .catch((err) => {
+        console.error("Erreur lors de la requête PUT :", err);
+        setError("Erreur réseau.");
+      });
   };
 
   return (
@@ -121,11 +142,12 @@ export default function IncidentEdit() {
               label="Source"
               onChange={handleChange}
             >
-              {sources.map((s) => (
-                <MenuItem key={s.id} value={s.id}>
-                  {s.nom}
-                </MenuItem>
-              ))}
+              {Array.isArray(sources) &&
+                sources.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>
+                    {s.nom}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
           <FormControl fullWidth margin="normal">

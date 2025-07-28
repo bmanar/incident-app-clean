@@ -20,21 +20,44 @@ export default function EntiteAdmin() {
   const [nom, setNom] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/entites")
+    fetch("http://localhost:8080/api/entites", {
+      credentials: "include",
+    })
       .then((res) => res.json())
-      .then(setEntites);
+      .then((data) => {
+        if (!Array.isArray(data)) {
+          console.error("❌ Entités non conformes :", data);
+          return;
+        }
+        setEntites(data);
+      })
+      .catch((err) => {
+        console.error("❌ Erreur lors du chargement des entités :", err);
+      });
   }, []);
 
   const handleAdd = () => {
+    if (!nom.trim()) return;
     fetch("http://localhost:8080/api/entites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nom }),
+      credentials: "include",
+      body: JSON.stringify({ nom: nom.trim() }),
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        return res.json();
+      })
       .then((e) => {
-        setEntites([...entites, e]);
+        if (!e || !e.id) {
+          console.error("❌ Réponse inattendue après ajout :", e);
+          return;
+        }
+        setEntites((prev) => [...prev, e]);
         setNom("");
+      })
+      .catch((err) => {
+        console.error("❌ Erreur lors de l'ajout de l'entité :", err);
       });
   };
 
@@ -42,7 +65,15 @@ export default function EntiteAdmin() {
     if (window.confirm("Supprimer cette entité ?")) {
       fetch(`http://localhost:8080/api/entites/${id}`, {
         method: "DELETE",
-      }).then(() => setEntites(entites.filter((e) => e.id !== id)));
+        credentials: "include",
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+          setEntites((prev) => prev.filter((e) => e.id !== id));
+        })
+        .catch((err) => {
+          console.error("❌ Erreur lors de la suppression :", err);
+        });
     }
   };
 
@@ -71,19 +102,27 @@ export default function EntiteAdmin() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {entites.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell>{e.nom}</TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDelete(e.id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+              {Array.isArray(entites) &&
+                entites.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell>{e.nom}</TableCell>
+                    <TableCell align="right">
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDelete(e.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              {(!Array.isArray(entites) || entites.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={2} align="center">
+                    Aucune entité à afficher.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>

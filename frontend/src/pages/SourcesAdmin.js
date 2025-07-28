@@ -19,9 +19,15 @@ export default function SourcesAdmin() {
   const [newSource, setNewSource] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/sources-incidents")
+    fetch("http://localhost:8080/api/sources-incidents", {
+      credentials: "include",
+    })
       .then((res) => res.json())
-      .then(setSources);
+      .then((data) => {
+        if (Array.isArray(data)) setSources(data);
+        else console.warn("Réponse inattendue pour les sources :", data);
+      })
+      .catch((err) => console.error("Erreur fetch sources :", err));
   }, []);
 
   const handleAdd = () => {
@@ -29,21 +35,30 @@ export default function SourcesAdmin() {
     fetch("http://localhost:8080/api/sources-incidents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ nom: newSource.trim() }),
     })
       .then((res) => res.json())
       .then((src) => {
-        setSources((prev) => [...prev, src]);
-        setNewSource("");
-      });
+        if (src && src.id) {
+          setSources((prev) => [...prev, src]);
+          setNewSource("");
+        } else {
+          console.warn("Erreur lors de l'ajout :", src);
+        }
+      })
+      .catch((err) => console.error("Erreur ajout source :", err));
   };
 
   const handleDelete = (id) => {
     fetch(`http://localhost:8080/api/sources-incidents/${id}`, {
       method: "DELETE",
-    }).then(() => {
-      setSources((prev) => prev.filter((s) => s.id !== id));
-    });
+      credentials: "include",
+    })
+      .then(() => {
+        setSources((prev) => prev.filter((s) => s.id !== id));
+      })
+      .catch((err) => console.error("Erreur suppression source :", err));
   };
 
   return (
@@ -69,20 +84,21 @@ export default function SourcesAdmin() {
         </Button>
       </Box>
       <List>
-        {sources.map((src) => (
-          <ListItem key={src.id} divider>
-            <ListItemText primary={src.nom} />
-            <ListItemSecondaryAction>
-              <IconButton
-                edge="end"
-                color="error"
-                onClick={() => handleDelete(src.id)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </ListItemSecondaryAction>
-          </ListItem>
-        ))}
+        {Array.isArray(sources) &&
+          sources.map((src) => (
+            <ListItem key={src.id} divider>
+              <ListItemText primary={src.nom} />
+              <ListItemSecondaryAction>
+                <IconButton
+                  edge="end"
+                  color="error"
+                  onClick={() => handleDelete(src.id)}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </ListItemSecondaryAction>
+            </ListItem>
+          ))}
       </List>
     </Paper>
   );

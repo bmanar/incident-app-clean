@@ -1,6 +1,5 @@
-// ✅ Fichier complet IncidentForm.js avec menus déroulants à largeur fixe (300px)
-
-import React, { useEffect, useState } from "react";
+// src/pages/IncidentForm.js
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -23,6 +22,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import BoltIcon from "@mui/icons-material/Bolt";
 import InfoIcon from "@mui/icons-material/Info";
+import { useUser } from "../context/UserContext";
 
 const TYPES_RISQUE = [
   "Fraude",
@@ -32,13 +32,15 @@ const TYPES_RISQUE = [
 ];
 const CRITICITES = ["Faible", "Moyenne", "Élevée", "Critique"];
 const EVOLUTIONS = ["Process", "Informatique", "Autre"];
-const URGENCES = ["Immediête", "Sous 1 mois", "À planifier"];
+const URGENCES = ["Immédiate", "Sous 1 mois", "À planifier"];
 const STATUTS = ["Nouveau", "En cours", "Résolu", "Clos"];
 
-export default function IncidentForm({ user }) {
+export default function IncidentForm() {
+  const { user } = useUser();
   const [form, setForm] = useState({
-    nomDeclarant: user ? `${user.prenom} ${user.nom}` : "",
-    serviceEntite: user && user.entite ? user.entite.nom : "",
+    utilisateurId: "",
+    nomDeclarant: "",
+    serviceEntite: "",
     dateRemontee: new Date().toISOString().slice(0, 10),
     statutIncident: "Nouveau",
     typeRisque: "",
@@ -54,28 +56,32 @@ export default function IncidentForm({ user }) {
     urgenceMiseEnOeuvre: "",
     commentairesComplementaires: "",
   });
-
   const [sources, setSources] = useState([]);
   const [alert, setAlert] = useState("");
 
+  // Préremplir dès que user est disponible
   useEffect(() => {
-    fetch("http://localhost:8080/api/sources-incidents", {
-      credentials: "include", // <-- AJOUT IMPORTANT
-    })
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        utilisateurId: user.id,
+        nomDeclarant: `${user.prenom} ${user.nom}`,
+        serviceEntite: user.entite?.nom || "",
+      }));
+    }
+  }, [user]);
+
+  // Charger les sources d'incident
+  useEffect(() => {
+    fetch("/api/sources-incidents", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
-        console.log("✅ Réponse sources :", data);
-        if (Array.isArray(data)) {
-          setSources(data);
-        } else if (Array.isArray(data.sources)) {
-          setSources(data.sources);
-        } else {
-          console.error("Format inattendu de la réponse :", data);
-          setSources([]);
-        }
+        if (Array.isArray(data)) setSources(data);
+        else if (Array.isArray(data.sources)) setSources(data.sources);
+        else setSources([]);
       })
       .catch((err) => {
-        console.error("Erreur lors du chargement des sources :", err);
+        console.error("Erreur chargement sources :", err);
         setSources([]);
       });
   }, []);
@@ -94,11 +100,12 @@ export default function IncidentForm({ user }) {
     try {
       const res = await fetch("/api/incidents", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           sourceIncident: form.sourceIncidentId
-            ? { id: parseInt(form.sourceIncidentId) }
+            ? { id: parseInt(form.sourceIncidentId, 10) }
             : null,
         }),
       });
@@ -106,8 +113,7 @@ export default function IncidentForm({ user }) {
         setAlert("Incident enregistré avec succès");
       } else {
         const errorData = await res.json();
-        const msg = Object.values(errorData).join(", ");
-        setAlert(`Erreur: ${msg}`);
+        setAlert(`Erreur: ${Object.values(errorData).join(", ")}`);
       }
     } catch (err) {
       console.error(err);
@@ -115,7 +121,7 @@ export default function IncidentForm({ user }) {
     }
   };
 
-  const fixedSelectStyle = { width: 300 }; // ✅ Largeur fixe des champs Select
+  const fixedSelectStyle = { width: 300 };
 
   const renderSection = (title, fields, icon) => (
     <Paper
@@ -145,12 +151,16 @@ export default function IncidentForm({ user }) {
       <Typography variant="h4" gutterBottom fontWeight={600} textAlign="center">
         🛡️ Déclaration d'incident – Programme Securisk
       </Typography>
+
       {alert && (
         <Alert severity="info" sx={{ mb: 2 }}>
           {alert}
         </Alert>
       )}
+
       <form onSubmit={handleSubmit}>
+        <input type="hidden" name="utilisateurId" value={form.utilisateurId} />
+
         {renderSection(
           "Informations Générales",
           [
@@ -160,9 +170,8 @@ export default function IncidentForm({ user }) {
                 label="Nom du déclarant"
                 fullWidth
                 value={form.nomDeclarant}
-                onChange={handleChange}
-                required
                 InputProps={{
+                  readOnly: true,
                   startAdornment: (
                     <InputAdornment position="start">
                       <PersonIcon />
@@ -177,9 +186,8 @@ export default function IncidentForm({ user }) {
                 label="Service / Entité"
                 fullWidth
                 value={form.serviceEntite}
-                onChange={handleChange}
-                required
                 InputProps={{
+                  readOnly: true,
                   startAdornment: (
                     <InputAdornment position="start">
                       <ApartmentIcon />
@@ -330,7 +338,7 @@ export default function IncidentForm({ user }) {
               <TextField
                 fullWidth
                 name="referenceAudit"
-                label="Référence du rapport / audit"
+                label="Référence audit"
                 value={form.referenceAudit}
                 onChange={handleChange}
               />
@@ -339,7 +347,7 @@ export default function IncidentForm({ user }) {
               <TextField
                 fullWidth
                 name="exigenceReglementaire"
-                label="Exigence réglementaire / politique interne"
+                label="Exigence réglementaire"
                 value={form.exigenceReglementaire}
                 onChange={handleChange}
               />
@@ -369,7 +377,7 @@ export default function IncidentForm({ user }) {
             </Grid>,
             <Grid item xs={12} sm={4} key="urgenceMiseEnOeuvre">
               <FormControl sx={fixedSelectStyle}>
-                <InputLabel>Urgence de la mise en œuvre</InputLabel>
+                <InputLabel>Urgence mise en œuvre</InputLabel>
                 <Select
                   name="urgenceMiseEnOeuvre"
                   value={form.urgenceMiseEnOeuvre}
@@ -389,7 +397,7 @@ export default function IncidentForm({ user }) {
                 multiline
                 rows={2}
                 name="commentairesComplementaires"
-                label="Commentaires / précisions complémentaires"
+                label="Commentaires complémentaires"
                 value={form.commentairesComplementaires}
                 onChange={handleChange}
               />

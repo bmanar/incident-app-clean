@@ -1,4 +1,4 @@
-package com.example.backend.security;
+package com.example.backend.service.impl;
 
 import com.example.backend.model.Utilisateur;
 import com.example.backend.repository.UtilisateurRepository;

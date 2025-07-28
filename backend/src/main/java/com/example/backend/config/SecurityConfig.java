@@ -37,14 +37,33 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login").permitAll()
-                .requestMatchers("/api/utilisateurs/login").permitAll() // utile si form pointe là-dessus
+                // login et authentification
+                .requestMatchers("/login", "/api/utilisateurs/login").permitAll()
+
+                // endpoint /api/utilisateurs/me accessible à tout utilisateur authentifié
+                .requestMatchers("/api/utilisateurs/me").authenticated()
+
+                // contrôle d'accès métier par rôle exact en base
+                .requestMatchers("/api/incidents/**").hasAnyAuthority("Declarer", "Qualifier", "Administrateur")
+                .requestMatchers("/api/qualifier/**").hasAuthority("Qualifier")
+                .requestMatchers("/api/admin/**").hasAuthority("Administrateur")
+
+                // toutes les autres requêtes authentifiées
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
-                .loginProcessingUrl("/login") // endpoint appelé par React en POST
+                .loginProcessingUrl("/login")
                 .successHandler(successHandler())
                 .failureHandler(failureHandler())
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessHandler((request, response, auth) -> {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                })
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
                 .permitAll()
             )
             .exceptionHandling(ex -> ex
@@ -55,6 +74,7 @@ public class SecurityConfig {
                 })
             )
             .sessionManagement(sess -> sess
+                // Conserve votre stratégie actuelle : session IF_REQUIRED
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
             );
 
@@ -65,7 +85,7 @@ public class SecurityConfig {
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder); // même si c’est NoOp, il faut le fournir
+        provider.setPasswordEncoder(passwordEncoder);
         return provider;
     }
 

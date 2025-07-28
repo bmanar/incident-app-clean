@@ -37,9 +37,12 @@ export default function LoginPage({ onLogin }) {
 
       if (res.ok) {
         // Authentification réussie, on vérifie avec /me
-        const userRes = await fetch("http://localhost:8080/api/users/me", {
-          credentials: "include",
-        });
+        const userRes = await fetch(
+          "http://localhost:8080/api/utilisateurs/me",
+          {
+            credentials: "include",
+          }
+        );
 
         if (userRes.ok) {
           const user = await userRes.json();

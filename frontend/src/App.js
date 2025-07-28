@@ -1,12 +1,16 @@
+// src/App.js
 import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-  useNavigate,
 } from "react-router-dom";
+import { UserProvider, useUser } from "./context/UserContext";
 import Sidebar from "./components/Sidebar";
+
+// ✅ TOUTES les pages doivent se trouver dans src/pages/
+import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import IncidentForm from "./pages/IncidentForm";
 import IncidentsList from "./pages/IncidentsList";
@@ -15,121 +19,131 @@ import IncidentQualify from "./pages/IncidentQualify";
 import SourcesAdmin from "./pages/SourcesAdmin";
 import UsersAdmin from "./pages/UsersAdmin";
 import EntitiesAdmin from "./pages/EntitiesAdmin";
-import LoginPage from "./pages/LoginPage";
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+function AppContent() {
+  const { user, setUser } = useUser();
   const [loading, setLoading] = useState(true);
 
+  // Détermine si l’utilisateur est connecté
+  const isLoggedIn = Boolean(user);
+
   useEffect(() => {
-    const checkSession = async () => {
-      console.log("✅ App.js – Vérification de la session...");
+    // Charge UNE SEULE FOIS l’utilisateur connecté
+    (async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/users/me", {
+        const res = await fetch("/api/utilisateurs/me", {
           credentials: "include",
         });
-
-        console.log("✅ Requête /me envoyée");
-
         if (res.ok) {
-          const user = await res.json();
-          console.log("✅ Utilisateur connecté :", user);
-          setIsLoggedIn(true);
+          const data = await res.json();
+          setUser(data);
         } else {
-          console.warn("⚠️ Requête /me retournée avec status", res.status);
-          setIsLoggedIn(false);
+          setUser(null);
         }
-      } catch (err) {
-        console.error("❌ Erreur vérification session:", err);
-        setIsLoggedIn(false);
+      } catch {
+        setUser(null);
       } finally {
         setLoading(false);
       }
-    };
+    })();
+  }, [setUser]);
 
-    checkSession();
-  }, []);
-
-  const handleLogin = (user) => {
-    localStorage.setItem("userName", user.nom || user.email || "Utilisateur");
-    localStorage.setItem("userId", user.id);
-    localStorage.setItem("entite", user.entite?.libelle || "");
-    setIsLoggedIn(true);
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem("userName", `${userData.prenom} ${userData.nom}`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {}
     localStorage.clear();
-    setIsLoggedIn(false);
+    setUser(null);
   };
 
-  if (loading) return null; // Tu peux mettre un spinner ici
+  if (loading) return null; // ou un loader si vous préférez
 
   return (
     <Router>
       <div style={{ display: "flex" }}>
         {isLoggedIn && <Sidebar onLogout={handleLogout} />}
-        <main
-          style={{
-            flexGrow: 1,
-            padding: "30px",
-            minHeight: "100vh",
-            background: "None",
-          }}
-        >
+        <main style={{ flexGrow: 1, padding: 30 }}>
           <Routes>
             <Route
               path="/login"
               element={
                 isLoggedIn ? (
-                  <Navigate to="/" />
+                  <Navigate to="/dashboard" replace />
                 ) : (
                   <LoginPage onLogin={handleLogin} />
                 )
               }
             />
-            <Route
-              path="/"
-              element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />}
-            />
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route
               path="/dashboard"
-              element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" />}
+              element={
+                isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />
+              }
             />
             <Route
               path="/ajouter"
-              element={isLoggedIn ? <IncidentForm /> : <Navigate to="/login" />}
+              element={
+                isLoggedIn ? <IncidentForm /> : <Navigate to="/login" replace />
+              }
             />
             <Route
               path="/liste"
               element={
-                isLoggedIn ? <IncidentsList /> : <Navigate to="/login" />
+                isLoggedIn ? (
+                  <IncidentsList />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
               }
             />
             <Route
               path="/incident/:id/qualifier"
               element={
-                isLoggedIn ? <IncidentQualify /> : <Navigate to="/login" />
+                isLoggedIn ? (
+                  <IncidentQualify />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
               }
             />
             <Route
               path="/incident/:id"
-              element={isLoggedIn ? <IncidentEdit /> : <Navigate to="/login" />}
+              element={
+                isLoggedIn ? <IncidentEdit /> : <Navigate to="/login" replace />
+              }
             />
             <Route
               path="/admin-sources"
-              element={isLoggedIn ? <SourcesAdmin /> : <Navigate to="/login" />}
+              element={
+                isLoggedIn ? <SourcesAdmin /> : <Navigate to="/login" replace />
+              }
             />
             <Route
               path="/admin-utilisateurs"
-              element={isLoggedIn ? <UsersAdmin /> : <Navigate to="/login" />}
+              element={
+                isLoggedIn ? <UsersAdmin /> : <Navigate to="/login" replace />
+              }
             />
             <Route
               path="/admin-entites"
               element={
-                isLoggedIn ? <EntitiesAdmin /> : <Navigate to="/login" />
+                isLoggedIn ? (
+                  <EntitiesAdmin />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
               }
             />
-            <Route path="*" element={<Navigate to="/" />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </main>
       </div>
@@ -137,4 +151,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <UserProvider>
+      <AppContent />
+    </UserProvider>
+  );
+}

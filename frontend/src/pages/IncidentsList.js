@@ -39,6 +39,7 @@ function getComparator(order, orderBy) {
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 function stableSort(array, comparator) {
+  if (!Array.isArray(array)) return [];
   const stabilized = array.map((el, idx) => [el, idx]);
   stabilized.sort((a, b) => {
     const order = comparator(a[0], b[0]);
@@ -49,6 +50,7 @@ function stableSort(array, comparator) {
 }
 
 const STATUTS = ["Nouveau", "En Cours", "Qualifié", "Traité", "Abandonné"];
+const PRIORITES = ["Haute", "Moyenne", "Basse"];
 
 export default function IncidentsList() {
   const navigate = useNavigate();
@@ -61,17 +63,44 @@ export default function IncidentsList() {
   const [filterStatut, setFilterStatut] = useState("");
   const [order, setOrder] = useState("desc");
   const [orderBy, setOrderBy] = useState("dateRemontee");
+  const [isDeclarerOnly, setIsDeclarerOnly] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/incidents")
+    fetch("http://localhost:8080/api/utilisateurs/me", {
+      credentials: "include",
+    })
       .then((res) => res.json())
+      .then((data) => {
+        if (data.roles && Array.isArray(data.roles)) {
+          const roleNames = data.roles.map((r) => r.nom);
+          setIsDeclarerOnly(
+            roleNames.length === 1 && roleNames.includes("Declarer")
+          );
+        }
+      })
+      .catch((err) =>
+        console.error("Erreur chargement rôle utilisateur :", err)
+      );
+
+    fetch("http://localhost:8080/api/incidents", {
+      credentials: "include",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Erreur incidents : " + res.status);
+        return res.json();
+      })
       .then((data) => {
         setIncidents(data);
         setFiltered(data);
-      });
-    fetch("http://localhost:8080/api/sources-incidents")
+      })
+      .catch((err) => console.error("Erreur chargement incidents :", err));
+
+    fetch("http://localhost:8080/api/sources-incidents", {
+      credentials: "include",
+    })
       .then((res) => res.json())
-      .then((data) => setSources(data));
+      .then((data) => setSources(data))
+      .catch((err) => console.error("Erreur chargement sources :", err));
   }, []);
 
   useEffect(() => {
@@ -106,24 +135,13 @@ export default function IncidentsList() {
     if (!window.confirm("Supprimer cet incident ?")) return;
     await fetch(`http://localhost:8080/api/incidents/${id}`, {
       method: "DELETE",
+      credentials: "include",
     });
     setIncidents(incidents.filter((i) => i.id !== id));
   };
 
   return (
-    <Box
-      sx={{
-        maxWidth: 1400,
-        width: "98vw",
-        mx: "auto",
-        mt: 5,
-        p: 3,
-        background: "linear-gradient(120deg,#f6f7fb 60%,#e8edfa 100%)",
-        borderRadius: 4,
-        boxShadow: 3,
-        overflowX: "auto",
-      }}
-    >
+    <Box sx={{ maxWidth: 1400, width: "98vw", mx: "auto", mt: 5, p: 3 }}>
       <Box
         display="flex"
         alignItems="center"
@@ -139,15 +157,14 @@ export default function IncidentsList() {
           </Typography>
         </Box>
         <Typography variant="subtitle1" color="text.secondary" fontWeight={600}>
-          {filtered.length} incident{filtered.length > 1 ? "s" : ""} affiché
-          {filtered.length > 1 ? "s" : ""}
+          {filtered.length} incident{filtered.length > 1 ? "s" : ""}
         </Typography>
       </Box>
 
       {/* Filtres */}
-      <Box display="flex" gap={2} mb={2} flexWrap="wrap">
+      <Box display="flex" gap={2} mb={2}>
         <TextField
-          label="Recherche (description)"
+          label="Recherche"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{
@@ -157,112 +174,84 @@ export default function IncidentsList() {
               </InputAdornment>
             ),
           }}
-          sx={{ width: 220, minWidth: 180 }}
         />
-
-        <FormControl sx={{ width: 180, minWidth: 150 }}>
-          <InputLabel id="source-filter-label">Source</InputLabel>
+        <FormControl>
+          <InputLabel>Source</InputLabel>
           <Select
-            labelId="source-filter-label"
             value={filterSource}
             label="Source"
             onChange={(e) => setFilterSource(e.target.value)}
+            sx={{ width: 150 }}
           >
             <MenuItem value="">Toutes</MenuItem>
-            {sources.map((src) => (
-              <MenuItem key={src.id} value={src.id}>
-                {src.nom}
+            {sources.map((s) => (
+              <MenuItem key={s.id} value={s.id}>
+                {s.nom}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
-
-        <FormControl sx={{ width: 110, minWidth: 90 }}>
-          <InputLabel id="priorite-filter-label">Priorité</InputLabel>
+        <FormControl>
+          <InputLabel>Priorité</InputLabel>
           <Select
-            labelId="priorite-filter-label"
             value={filterPriorite}
             label="Priorité"
             onChange={(e) => setFilterPriorite(e.target.value)}
+            sx={{ width: 150 }}
           >
             <MenuItem value="">Toutes</MenuItem>
-            {["P0", "P1", "P2", "P3"].map((p) => (
+            {PRIORITES.map((p) => (
               <MenuItem key={p} value={p}>
                 {p}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
-
-        <FormControl sx={{ width: 150, minWidth: 120 }}>
-          <InputLabel id="statut-filter-label">Statut</InputLabel>
+        <FormControl>
+          <InputLabel>Statut</InputLabel>
           <Select
-            labelId="statut-filter-label"
             value={filterStatut}
             label="Statut"
             onChange={(e) => setFilterStatut(e.target.value)}
+            sx={{ width: 150 }}
           >
             <MenuItem value="">Tous</MenuItem>
-            {STATUTS.map((st) => (
-              <MenuItem key={st} value={st}>
-                {st}
+            {STATUTS.map((s) => (
+              <MenuItem key={s} value={s}>
+                {s}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
       </Box>
 
-      <TableContainer component={Card} sx={{ borderRadius: 3, minWidth: 900 }}>
+      <TableContainer component={Card} sx={{ borderRadius: 3 }}>
         <Table>
           <TableHead>
             <TableRow sx={{ background: "#e8edfa" }}>
               <TableCell>
                 <TableSortLabel
                   active={orderBy === "dateRemontee"}
-                  direction={orderBy === "dateRemontee" ? order : "asc"}
+                  direction={order}
                   onClick={() => handleRequestSort("dateRemontee")}
                 >
                   <b>Date</b>
                 </TableSortLabel>
               </TableCell>
-              <TableCell sx={{ width: 80, minWidth: 60, maxWidth: 100 }}>
-                <TableSortLabel
-                  active={orderBy === "prioriteMetier"}
-                  direction={orderBy === "prioriteMetier" ? order : "asc"}
-                  onClick={() => handleRequestSort("prioriteMetier")}
-                >
-                  <b>Priorité</b>
-                </TableSortLabel>
+              <TableCell>
+                <b>Priorité</b>
               </TableCell>
               <TableCell>
                 <b>Description</b>
               </TableCell>
               <TableCell>
-                <TableSortLabel
-                  active={orderBy === "sourceIncident"}
-                  direction={orderBy === "sourceIncident" ? order : "asc"}
-                  onClick={() => handleRequestSort("sourceIncident")}
-                >
-                  <b>Source</b>
-                </TableSortLabel>
+                <b>Source</b>
               </TableCell>
               <TableCell>
-                <TableSortLabel
-                  active={orderBy === "statutIncident"}
-                  direction={orderBy === "statutIncident" ? order : "asc"}
-                  onClick={() => handleRequestSort("statutIncident")}
-                >
-                  <b>Statut</b>
-                </TableSortLabel>
+                <b>Statut</b>
               </TableCell>
               <TableCell align="right">
-                <TableSortLabel
-                  active={orderBy === "montantPertes"}
-                  direction={orderBy === "montantPertes" ? order : "asc"}
-                  onClick={() => handleRequestSort("montantPertes")}
-                >
-                  <b>Montant des pertes</b>
-                </TableSortLabel>
+                <b>Montant des pertes</b>
               </TableCell>
               <TableCell align="right">
                 <b>Actions</b>
@@ -274,56 +263,10 @@ export default function IncidentsList() {
               (incident) => (
                 <TableRow key={incident.id}>
                   <TableCell>{incident.dateRemontee}</TableCell>
-                  <TableCell sx={{ width: 80, minWidth: 60, maxWidth: 100 }}>
-                    <Chip
-                      label={incident.prioriteMetier}
-                      size="small"
-                      sx={{
-                        minWidth: 38,
-                        px: 0.5,
-                        fontSize: 12,
-                        height: 24,
-                        bgcolor:
-                          incident.prioriteMetier === "P0"
-                            ? "#d32f2f"
-                            : incident.prioriteMetier === "P1"
-                            ? "#f57c00"
-                            : incident.prioriteMetier === "P2"
-                            ? "#1976d2"
-                            : "#757575",
-                        color: "#fff",
-                        fontWeight: "bold",
-                      }}
-                    />
-                  </TableCell>
+                  <TableCell>{incident.prioriteMetier}</TableCell>
                   <TableCell>{incident.description}</TableCell>
                   <TableCell>{incident.sourceIncident?.nom}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={incident.statutIncident}
-                      size="small"
-                      sx={{
-                        minWidth: 78,
-                        px: 1,
-                        fontSize: 12,
-                        height: 24,
-                        bgcolor:
-                          incident.statutIncident === "Traité"
-                            ? "#388e3c"
-                            : incident.statutIncident === "En Cours"
-                            ? "#ffa000"
-                            : incident.statutIncident === "Nouveau"
-                            ? "#1976d2"
-                            : incident.statutIncident === "Qualifié"
-                            ? "#6d28d9"
-                            : incident.statutIncident === "Abandonné"
-                            ? "#757575"
-                            : "#bdbdbd",
-                        color: "#fff",
-                        fontWeight: "bold",
-                      }}
-                    />
-                  </TableCell>
+                  <TableCell>{incident.statutIncident}</TableCell>
                   <TableCell align="right">
                     <Typography
                       variant="body2"
@@ -350,7 +293,9 @@ export default function IncidentsList() {
                           ? "Qualifier cet incident"
                           : "La qualification n'est possible que sur un incident Nouveau"
                       }
-                      disabled={incident.statutIncident !== "Nouveau"}
+                      disabled={
+                        incident.statutIncident !== "Nouveau" || isDeclarerOnly
+                      }
                     >
                       <AssignmentTurnedInIcon />
                     </IconButton>

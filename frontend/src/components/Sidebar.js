@@ -1,4 +1,5 @@
-import React, { useContext } from "react";
+// src/components/Sidebar.js
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Drawer,
@@ -22,26 +23,22 @@ import SourceIcon from "@mui/icons-material/Source";
 import PeopleIcon from "@mui/icons-material/People";
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { useState } from "react";
+import { useUser } from "../context/UserContext";
 
 const drawerWidth = 240;
 
-export default function Sidebar() {
+export default function Sidebar({ onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useUser();
+  const roles = user?.roles || [];
   const [openSettings, setOpenSettings] = useState(false);
 
-  // Exemple d'affichage du nom utilisateur connecté (si stocké en localStorage)
-  const userName = localStorage.getItem("userName") || "Utilisateur";
+  const isDeclarer = roles.includes("Declarer");
+  const isQualifier = roles.includes("Qualifier");
+  const isAdmin = roles.includes("Administrateur");
 
-  const handleSettingsClick = () => {
-    setOpenSettings(!openSettings);
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
+  const handleSettingsClick = () => setOpenSettings(!openSettings);
 
   return (
     <Drawer
@@ -65,13 +62,12 @@ export default function Sidebar() {
             Gestion Incidents
           </Typography>
           <Typography variant="subtitle2" color="text.secondary">
-            Bonjour, {userName}
+            Bonjour, {user ? `${user.prenom} ${user.nom}` : "Utilisateur"}
           </Typography>
         </Box>
         <Divider sx={{ mb: 1 }} />
 
         <List>
-          {/* Accueil */}
           <ListItem disablePadding>
             <ListItemButton
               selected={
@@ -86,11 +82,12 @@ export default function Sidebar() {
             </ListItemButton>
           </ListItem>
 
-          {/* Saisie d'incident */}
+          {/* Remontée */}
           <ListItem disablePadding>
             <ListItemButton
               selected={location.pathname === "/ajouter"}
               onClick={() => navigate("/ajouter")}
+              disabled={isQualifier && !isAdmin}
             >
               <ListItemIcon>
                 <AddCircleOutlineIcon />
@@ -112,55 +109,59 @@ export default function Sidebar() {
             </ListItemButton>
           </ListItem>
 
-          {/* Paramètres avec sous-menu */}
-          <ListItem disablePadding>
-            <ListItemButton onClick={handleSettingsClick}>
-              <ListItemIcon>
-                <SettingsIcon />
-              </ListItemIcon>
-              <ListItemText primary="Paramètres" />
-              {openSettings ? <ExpandLess /> : <ExpandMore />}
-            </ListItemButton>
-          </ListItem>
-          <Collapse in={openSettings} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              <ListItemButton
-                sx={{ pl: 4 }}
-                selected={location.pathname === "/admin-sources"}
-                onClick={() => navigate("/admin-sources")}
-              >
-                <ListItemIcon>
-                  <SourceIcon />
-                </ListItemIcon>
-                <ListItemText primary="Sources d'incident" />
-              </ListItemButton>
-              <ListItemButton
-                sx={{ pl: 4 }}
-                selected={location.pathname === "/admin-utilisateurs"}
-                onClick={() => navigate("/admin-utilisateurs")}
-              >
-                <ListItemIcon>
-                  <PeopleIcon />
-                </ListItemIcon>
-                <ListItemText primary="Utilisateurs" />
-              </ListItemButton>
-              <ListItemButton
-                sx={{ pl: 4 }}
-                selected={location.pathname === "/admin-entites"}
-                onClick={() => navigate("/admin-entites")}
-              >
-                <ListItemIcon>
-                  <ApartmentIcon />
-                </ListItemIcon>
-                <ListItemText primary="Entités" />
-              </ListItemButton>
-            </List>
-          </Collapse>
+          {/* Paramètres */}
+          {(isAdmin || isQualifier) && (
+            <>
+              <ListItem disablePadding>
+                <ListItemButton onClick={handleSettingsClick}>
+                  <ListItemIcon>
+                    <SettingsIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="Paramètres" />
+                  {openSettings ? <ExpandLess /> : <ExpandMore />}
+                </ListItemButton>
+              </ListItem>
+              <Collapse in={openSettings} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  <ListItemButton
+                    sx={{ pl: 4 }}
+                    selected={location.pathname === "/admin-sources"}
+                    onClick={() => navigate("/admin-sources")}
+                  >
+                    <ListItemIcon>
+                      <SourceIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Sources d'incident" />
+                  </ListItemButton>
+                  <ListItemButton
+                    sx={{ pl: 4 }}
+                    selected={location.pathname === "/admin-utilisateurs"}
+                    onClick={() => navigate("/admin-utilisateurs")}
+                  >
+                    <ListItemIcon>
+                      <PeopleIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Utilisateurs" />
+                  </ListItemButton>
+                  <ListItemButton
+                    sx={{ pl: 4 }}
+                    selected={location.pathname === "/admin-entites"}
+                    onClick={() => navigate("/admin-entites")}
+                  >
+                    <ListItemIcon>
+                      <ApartmentIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Entités" />
+                  </ListItemButton>
+                </List>
+              </Collapse>
+            </>
+          )}
 
-          {/* Logout en bas */}
+          {/* Logout */}
           <Box sx={{ flexGrow: 1 }} />
           <ListItem disablePadding>
-            <ListItemButton onClick={handleLogout}>
+            <ListItemButton onClick={onLogout}>
               <ListItemIcon>
                 <LogoutIcon color="error" />
               </ListItemIcon>
