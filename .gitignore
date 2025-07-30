@@ -11,3 +11,5 @@ build/
 
 # Archives et fichiers temporaires
 *.zip
+srcfrontend.zip
+srcbackend.zip
