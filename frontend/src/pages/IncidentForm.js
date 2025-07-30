@@ -66,7 +66,10 @@ export default function IncidentForm() {
         ...prev,
         utilisateurId: user.id,
         nomDeclarant: `${user.prenom} ${user.nom}`,
-        serviceEntite: user.entite?.nom || "",
+        serviceEntite:
+          typeof user.entite === "string"
+            ? user.entite
+            : user.entite?.nom || "",
       }));
     }
   }, [user]);
@@ -231,8 +234,16 @@ export default function IncidentForm() {
         {renderSection(
           "Description du Risque",
           [
-            <Grid item xs={12} sm={4} key="typeRisque">
-              <FormControl sx={fixedSelectStyle}>
+            <Box
+              key="ligne-risque"
+              sx={{
+                display: "flex",
+                gap: 2,
+                width: "100%",
+                alignItems: "flex-start",
+              }}
+            >
+              <FormControl sx={{ width: "200px" }}>
                 <InputLabel>Type de risque</InputLabel>
                 <Select
                   name="typeRisque"
@@ -246,28 +257,26 @@ export default function IncidentForm() {
                   ))}
                 </Select>
               </FormControl>
-            </Grid>,
-            <Grid item xs={12} sm={5} key="description">
+
               <TextField
                 multiline
                 rows={3}
-                fullWidth
                 name="description"
                 label="Description détaillée du risque"
                 value={form.description}
                 onChange={handleChange}
                 required
+                sx={{ flexGrow: 1 }}
               />
-            </Grid>,
-            <Grid item xs={12} sm={3} key="origineRisque">
+
               <TextField
-                fullWidth
                 name="origineRisque"
                 label="Origine du risque"
                 value={form.origineRisque}
                 onChange={handleChange}
+                sx={{ width: "200px" }}
               />
-            </Grid>,
+            </Box>,
           ],
           <ReportIcon />
         )}

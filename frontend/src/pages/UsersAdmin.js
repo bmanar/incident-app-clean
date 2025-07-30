@@ -1,3 +1,4 @@
+// src/pages/UsersAdmin.js
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -43,7 +44,7 @@ export default function UsersAdmin() {
     entiteId: "",
     password: "",
     passwordConfirm: "",
-    roles: [],
+    roles: [], // <-- maintenant un tableau de strings
   });
   const [entites, setEntites] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
@@ -76,19 +77,17 @@ export default function UsersAdmin() {
 
   const handleRoleChange = (role) => {
     setForm((f) => {
-      const alreadySelected = f.roles.includes(role);
-      let updatedRoles = alreadySelected
+      const already = f.roles.includes(role);
+      let updated = already
         ? f.roles.filter((r) => r !== role)
         : [...f.roles, role];
-
-      // Exclusion mutuelle Déclarer <-> Qualifier
-      if (role === "Déclarer" && !alreadySelected) {
-        updatedRoles = updatedRoles.filter((r) => r !== "Qualifier");
-      } else if (role === "Qualifier" && !alreadySelected) {
-        updatedRoles = updatedRoles.filter((r) => r !== "Déclarer");
+      // exclusion mutuelle
+      if (!already && role === "Déclarer") {
+        updated = updated.filter((r) => r !== "Qualifier");
+      } else if (!already && role === "Qualifier") {
+        updated = updated.filter((r) => r !== "Déclarer");
       }
-
-      return { ...f, roles: updatedRoles };
+      return { ...f, roles: updated };
     });
   };
 
@@ -102,7 +101,8 @@ export default function UsersAdmin() {
         entiteId: user.entite?.id || "",
         password: "",
         passwordConfirm: "",
-        roles: user.roles || [],
+        // on stocke désormais un tableau de noms de rôles
+        roles: Array.isArray(user.roles) ? user.roles.map((r) => r.nom) : [],
       });
     } else {
       setEditId(null);
@@ -135,13 +135,14 @@ export default function UsersAdmin() {
       return;
     }
 
-    const data = {
+    // on retransforme en tableau d'objets { nom }
+    const payload = {
       nom: form.nom,
       prenom: form.prenom,
       mail: form.mail,
       entiteId: form.entiteId,
       password: form.password,
-      roles: form.roles,
+      roles: form.roles.map((rolename) => ({ nom: rolename })),
     };
 
     const url = editId
@@ -153,7 +154,7 @@ export default function UsersAdmin() {
       method,
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     })
       .then(async (res) => {
         if (res.status === 409) {
@@ -180,10 +181,10 @@ export default function UsersAdmin() {
           roles: [],
         });
         setError("");
-        setUsers(
+        setUsers((prev) =>
           editId
-            ? users.map((u) => (u.id === user.id ? user : u))
-            : [...users, user]
+            ? prev.map((u) => (u.id === user.id ? user : u))
+            : [...prev, user]
         );
       });
   };
@@ -193,7 +194,7 @@ export default function UsersAdmin() {
       fetch(`http://localhost:8080/api/utilisateurs/${id}`, {
         method: "DELETE",
         credentials: "include",
-      }).then(() => setUsers(users.filter((u) => u.id !== id)));
+      }).then(() => setUsers((prev) => prev.filter((u) => u.id !== id)));
     }
   };
 
@@ -231,7 +232,10 @@ export default function UsersAdmin() {
                   <TableCell>{u.mail}</TableCell>
                   <TableCell>{u.entite?.nom || ""}</TableCell>
                   <TableCell>
-                    {Array.isArray(u.roles) ? u.roles.join(", ") : ""}
+                    {/* on affiche les noms de rôles */}
+                    {Array.isArray(u.roles)
+                      ? u.roles.map((r) => r.nom).join(", ")
+                      : ""}
                   </TableCell>
                   <TableCell align="right">
                     <IconButton color="primary" onClick={() => handleOpen(u)}>
@@ -251,6 +255,7 @@ export default function UsersAdmin() {
         </TableContainer>
       </Paper>
 
+      {/* DIALOGUE D’AJOUT/MODIF */}
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>
           {editId ? "Modifier" : "Ajouter"} un utilisateur
@@ -290,12 +295,11 @@ export default function UsersAdmin() {
               onChange={handleChange}
               required
             >
-              {Array.isArray(entites) &&
-                entites.map((e) => (
-                  <MenuItem key={e.id} value={e.id}>
-                    {e.nom}
-                  </MenuItem>
-                ))}
+              {entites.map((e) => (
+                <MenuItem key={e.id} value={e.id}>
+                  {e.nom}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -314,6 +318,7 @@ export default function UsersAdmin() {
             ))}
           </FormGroup>
 
+          {/* Gestion affichage mot de passe */}
           <TextField
             label="Mot de passe"
             name="password"

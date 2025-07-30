@@ -31,12 +31,16 @@ export default function Sidebar({ onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useUser();
-  const roles = user?.roles || [];
+
+  // on ne travaille que sur les noms de rôles
+  const roleNames = Array.isArray(user?.roles)
+    ? user.roles.map((r) => r.nom)
+    : [];
   const [openSettings, setOpenSettings] = useState(false);
 
-  const isDeclarer = roles.includes("Declarer");
-  const isQualifier = roles.includes("Qualifier");
-  const isAdmin = roles.includes("Administrateur");
+  const isDeclarer = roleNames.includes("Declarer");
+  const isQualifier = roleNames.includes("Qualifier");
+  const isAdmin = roleNames.includes("Administrateur");
 
   const handleSettingsClick = () => setOpenSettings(!openSettings);
 
