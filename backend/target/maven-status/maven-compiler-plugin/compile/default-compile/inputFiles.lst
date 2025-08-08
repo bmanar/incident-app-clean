@@ -1,5 +1,6 @@
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/BackendApplication.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/config/CorsConfig.java
+/Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/config/MultipartConfig.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/config/SecurityBeansConfig.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/config/SecurityConfig.java
 /Users/manarbennani/Projets/incident-app/backend/src/main/java/com/example/backend/controller/AuthController.java

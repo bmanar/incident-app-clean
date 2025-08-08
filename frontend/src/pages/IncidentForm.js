@@ -1,4 +1,5 @@
 // src/pages/IncidentForm.js
+
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -16,12 +17,11 @@ import {
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import ApartmentIcon from "@mui/icons-material/Apartment";
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import InfoIcon from "@mui/icons-material/Info";
 import ReportIcon from "@mui/icons-material/ReportProblem";
 import WarningIcon from "@mui/icons-material/Warning";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import BoltIcon from "@mui/icons-material/Bolt";
-import InfoIcon from "@mui/icons-material/Info";
 import { useUser } from "../context/UserContext";
 
 const TYPES_RISQUE = [
@@ -41,6 +41,7 @@ export default function IncidentForm() {
     utilisateurId: "",
     nomDeclarant: "",
     serviceEntite: "",
+    libelle: "",
     dateRemontee: new Date().toISOString().slice(0, 10),
     statutIncident: "Nouveau",
     typeRisque: "",
@@ -51,13 +52,14 @@ export default function IncidentForm() {
     consequencesPotentielles: "",
     sourceIncidentId: "",
     referenceAudit: "",
-    exigenceReglementaire: "",
+    exigenceReglementaire: false,
     propositionEvolution: "",
     urgenceMiseEnOeuvre: "",
     commentairesComplementaires: "",
   });
   const [sources, setSources] = useState([]);
   const [alert, setAlert] = useState("");
+  const [fichierJoint, setFichierJoint] = useState(null);
 
   // Préremplir dès que user est disponible
   useEffect(() => {
@@ -66,10 +68,7 @@ export default function IncidentForm() {
         ...prev,
         utilisateurId: user.id,
         nomDeclarant: `${user.prenom} ${user.nom}`,
-        serviceEntite:
-          typeof user.entite === "string"
-            ? user.entite
-            : user.entite?.nom || "",
+        serviceEntite: user.entite?.nom || "",
       }));
     }
   }, [user]);
@@ -90,33 +89,84 @@ export default function IncidentForm() {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
+
+  const handleFileChange = (e) => {
+    const file =
+      e.target.files && e.target.files.length > 0 ? e.target.files[0] : null;
+    setFichierJoint(file);
+    // TRACE : vérifie le fichier sélectionné
+    console.log("Fichier sélectionné :", file?.name || "Aucun");
+  };
+
+  const handleRemoveFile = () => setFichierJoint(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.description.trim()) {
-      setAlert("La description est obligatoire.");
+    // 👇 TRACE ICI
+    console.log("Fichier à envoyer :", fichierJoint?.name || "Aucun");
+
+    if (!form.description.trim() || !form.libelle.trim()) {
+      setAlert("Le libellé et la description sont obligatoires.");
       return;
     }
     try {
-      const res = await fetch("/api/incidents", {
+      const formData = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        formData.append(
+          key,
+          typeof value === "boolean" ? String(value) : value
+        );
+      });
+      if (fichierJoint) {
+        formData.append("fichierJoint", fichierJoint);
+      }
+      // TRACE : vérifie ce qui va être envoyé
+      console.log("Fichier à envoyer :", fichierJoint?.name || "Aucun");
+      for (let [k, v] of formData.entries()) {
+        console.log(`FormData ${k}:`, v);
+      }
+
+      console.log("Fichier à envoyer :", fichierJoint?.name || "Aucun");
+
+      const res = await fetch("http://localhost:8080/api/incidents", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          sourceIncident: form.sourceIncidentId
-            ? { id: parseInt(form.sourceIncidentId, 10) }
-            : null,
-        }),
+        body: formData,
       });
+
       if (res.ok) {
         setAlert("Incident enregistré avec succès");
+        setFichierJoint(null);
+        setForm((prev) => ({
+          ...prev,
+          description: "",
+          libelle: "",
+          typeRisque: "",
+          origineRisque: "",
+          volumeConcerne: "",
+          criticite: "",
+          consequencesPotentielles: "",
+          sourceIncidentId: "",
+          referenceAudit: "",
+          exigenceReglementaire: false,
+          propositionEvolution: "",
+          urgenceMiseEnOeuvre: "",
+          commentairesComplementaires: "",
+        }));
       } else {
-        const errorData = await res.json();
-        setAlert(`Erreur: ${Object.values(errorData).join(", ")}`);
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          setAlert(`Erreur: ${Object.values(json).join(", ")}`);
+        } catch (err) {
+          setAlert(`Erreur: ${text}`);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -124,8 +174,107 @@ export default function IncidentForm() {
     }
   };
 
-  const fixedSelectStyle = { width: 300 };
+  // Section Infos Générales : NE PAS MODIFIER
+  const infoGeneralesSection = (
+    <Paper
+      sx={{
+        p: 3,
+        mb: 4,
+        borderLeft: "5px solid #1976d2",
+        backgroundColor: "#f9f9f9",
+      }}
+      elevation={2}
+    >
+      <Typography
+        variant="h6"
+        gutterBottom
+        sx={{ display: "flex", alignItems: "center", mb: 2 }}
+      >
+        <InfoIcon style={{ marginRight: 8 }} /> Informations Générales
+      </Typography>
 
+      {/* LIGNE 1 : Libellé */}
+      <Grid container spacing={2} sx={{ mb: 1 }}>
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            name="libelle"
+            label="Libellé de l'incident"
+            value={form.libelle}
+            onChange={handleChange}
+            required
+            sx={{ width: "700px" }}
+          />
+        </Grid>
+      </Grid>
+
+      {/* LIGNE 2 : Autres champs */}
+      <Grid container spacing={2}>
+        <Grid item xs={12} sm={3}>
+          <TextField
+            name="nomDeclarant"
+            label="Nom du déclarant"
+            fullWidth
+            value={form.nomDeclarant}
+            InputProps={{
+              readOnly: true,
+              startAdornment: (
+                <InputAdornment position="start">
+                  <PersonIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <TextField
+            name="serviceEntite"
+            label="Service / Entité"
+            fullWidth
+            value={form.serviceEntite}
+            InputProps={{
+              readOnly: true,
+              startAdornment: (
+                <InputAdornment position="start">
+                  <ApartmentIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <TextField
+            type="date"
+            name="dateRemontee"
+            label="Date de la remontée"
+            fullWidth
+            value={form.dateRemontee}
+            onChange={handleChange}
+            InputLabelProps={{ shrink: true }}
+            required
+          />
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <FormControl fullWidth required>
+            <InputLabel>Statut de l'incident</InputLabel>
+            <Select
+              name="statutIncident"
+              value={form.statutIncident}
+              onChange={handleChange}
+            >
+              {STATUTS.map((val) => (
+                <MenuItem key={val} value={val}>
+                  {val}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+      </Grid>
+    </Paper>
+  );
+
+  // Rendu
   const renderSection = (title, fields, icon) => (
     <Paper
       sx={{
@@ -154,96 +303,22 @@ export default function IncidentForm() {
       <Typography variant="h4" gutterBottom fontWeight={600} textAlign="center">
         🛡️ Déclaration d'incident – Programme Securisk
       </Typography>
-
       {alert && (
         <Alert severity="info" sx={{ mb: 2 }}>
           {alert}
         </Alert>
       )}
-
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} encType="multipart/form-data">
         <input type="hidden" name="utilisateurId" value={form.utilisateurId} />
 
-        {renderSection(
-          "Informations Générales",
-          [
-            <Grid item xs={12} sm={4} key="nomDeclarant">
-              <TextField
-                name="nomDeclarant"
-                label="Nom du déclarant"
-                fullWidth
-                value={form.nomDeclarant}
-                InputProps={{
-                  readOnly: true,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PersonIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>,
-            <Grid item xs={12} sm={4} key="serviceEntite">
-              <TextField
-                name="serviceEntite"
-                label="Service / Entité"
-                fullWidth
-                value={form.serviceEntite}
-                InputProps={{
-                  readOnly: true,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <ApartmentIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>,
-            <Grid item xs={12} sm={4} key="dateRemontee">
-              <TextField
-                type="date"
-                name="dateRemontee"
-                label="Date de la remontée"
-                fullWidth
-                value={form.dateRemontee}
-                onChange={handleChange}
-                InputLabelProps={{ shrink: true }}
-                required
-              />
-            </Grid>,
-            <Grid item xs={12} sm={4} key="statutIncident">
-              <FormControl sx={fixedSelectStyle} required>
-                <InputLabel>Statut de l'incident</InputLabel>
-                <Select
-                  name="statutIncident"
-                  value={form.statutIncident}
-                  onChange={handleChange}
-                >
-                  {STATUTS.map((val) => (
-                    <MenuItem key={val} value={val}>
-                      {val}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>,
-          ],
-          <InfoIcon />
-        )}
+        {infoGeneralesSection}
 
+        {/* Description du Risque */}
         {renderSection(
           "Description du Risque",
           [
-            <Box
-              key="ligne-risque"
-              sx={{
-                display: "flex",
-                gap: 2,
-                width: "100%",
-                alignItems: "flex-start",
-              }}
-            >
-              <FormControl sx={{ width: "200px" }}>
+            <Grid item xs={12} sm={2} key="typeRisque">
+              <FormControl fullWidth>
                 <InputLabel>Type de risque</InputLabel>
                 <Select
                   name="typeRisque"
@@ -257,30 +332,33 @@ export default function IncidentForm() {
                   ))}
                 </Select>
               </FormControl>
-
+            </Grid>,
+            <Grid item xs={12} sm={7} key="description">
               <TextField
                 multiline
                 rows={3}
+                fullWidth
                 name="description"
                 label="Description détaillée du risque"
                 value={form.description}
                 onChange={handleChange}
                 required
-                sx={{ flexGrow: 1 }}
               />
-
+            </Grid>,
+            <Grid item xs={12} sm={3} key="origineRisque">
               <TextField
+                fullWidth
                 name="origineRisque"
                 label="Origine du risque"
                 value={form.origineRisque}
                 onChange={handleChange}
-                sx={{ width: "200px" }}
               />
-            </Box>,
+            </Grid>,
           ],
           <ReportIcon />
         )}
 
+        {/* Données d’impact */}
         {renderSection(
           "Données d’impact",
           [
@@ -294,7 +372,7 @@ export default function IncidentForm() {
               />
             </Grid>,
             <Grid item xs={12} sm={3} key="criticite">
-              <FormControl sx={fixedSelectStyle}>
+              <FormControl fullWidth>
                 <InputLabel>Criticité</InputLabel>
                 <Select
                   name="criticite"
@@ -324,11 +402,12 @@ export default function IncidentForm() {
           <WarningIcon />
         )}
 
+        {/* Éléments de Conformité / Audit */}
         {renderSection(
           "Éléments de Conformité / Audit",
           [
             <Grid item xs={12} sm={4} key="sourceIncidentId">
-              <FormControl sx={fixedSelectStyle}>
+              <FormControl fullWidth>
                 <InputLabel>Source de la détection</InputLabel>
                 <Select
                   name="sourceIncidentId"
@@ -353,23 +432,34 @@ export default function IncidentForm() {
               />
             </Grid>,
             <Grid item xs={12} sm={4} key="exigenceReglementaire">
-              <TextField
-                fullWidth
-                name="exigenceReglementaire"
-                label="Exigence réglementaire"
-                value={form.exigenceReglementaire}
-                onChange={handleChange}
-              />
+              <FormControl fullWidth>
+                <InputLabel shrink>Exigence réglementaire</InputLabel>
+                <Select
+                  name="exigenceReglementaire"
+                  value={form.exigenceReglementaire ? "true" : "false"}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      exigenceReglementaire: e.target.value === "true",
+                    }))
+                  }
+                  label="Exigence réglementaire"
+                >
+                  <MenuItem value="false">Non</MenuItem>
+                  <MenuItem value="true">Oui</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>,
           ],
           <VerifiedUserIcon />
         )}
 
+        {/* Actions recommandées */}
         {renderSection(
           "Actions recommandées",
           [
             <Grid item xs={12} sm={4} key="propositionEvolution">
-              <FormControl sx={fixedSelectStyle}>
+              <FormControl fullWidth>
                 <InputLabel>Proposition d'évolution</InputLabel>
                 <Select
                   name="propositionEvolution"
@@ -385,7 +475,7 @@ export default function IncidentForm() {
               </FormControl>
             </Grid>,
             <Grid item xs={12} sm={4} key="urgenceMiseEnOeuvre">
-              <FormControl sx={fixedSelectStyle}>
+              <FormControl fullWidth>
                 <InputLabel>Urgence mise en œuvre</InputLabel>
                 <Select
                   name="urgenceMiseEnOeuvre"
@@ -414,6 +504,29 @@ export default function IncidentForm() {
           ],
           <BoltIcon />
         )}
+
+        {/* --- Champ d'upload de fichier (juste avant bouton) --- */}
+        <Box mt={3} mb={2}>
+          <Button variant="contained" component="label" sx={{ minWidth: 220 }}>
+            Joindre un fichier
+            <input
+              type="file"
+              hidden
+              name="fichierJoint"
+              accept=".pdf,.doc,.docx,.jpg,.png"
+              multiple={false} // ← impose un seul fichier
+              onChange={handleFileChange}
+            />
+          </Button>
+          {fichierJoint && (
+            <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="body2">{fichierJoint.name}</Typography>
+              <Button size="small" color="error" onClick={handleRemoveFile}>
+                Retirer
+              </Button>
+            </Box>
+          )}
+        </Box>
 
         <Box textAlign="right" mt={2}>
           <Button type="submit" variant="contained" size="large">

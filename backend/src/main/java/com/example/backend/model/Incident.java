@@ -25,6 +25,15 @@ public class Incident {
     private String statutIncident;
     private String prioriteMetier;
     private String sourceIncident;
+    @Column(name = "exigence_reglementaire")
+    private Boolean exigenceReglementaire;
+    private String typeRisque;
+private String origineRisque;
+private String volumeConcerne;
+private String consequencesPotentielles;
+private String referenceAudit;
+private String commentairesComplementaires;
+
 
     // on n’a pas besoin de sérialiser l’utilisateur à chaque fois
     @JsonIgnore
@@ -156,4 +165,49 @@ public class Incident {
     public void setDateDeclaration(LocalDate dateDeclaration) {
         this.dateDeclaration = dateDeclaration;
     }
+
+    public String getTypeRisque() {
+        return typeRisque;
+    }
+    public void setTypeRisque(String typeRisque) {
+        this.typeRisque = typeRisque;
+    }
+    
+    public String getOrigineRisque() {
+        return origineRisque;
+    }
+    public void setOrigineRisque(String origineRisque) {
+        this.origineRisque = origineRisque;
+    }
+    
+    public String getVolumeConcerne() {
+        return volumeConcerne;
+    }
+    public void setVolumeConcerne(String volumeConcerne) {
+        this.volumeConcerne = volumeConcerne;
+    }
+    
+    public String getConsequencesPotentielles() {
+        return consequencesPotentielles;
+    }
+    public void setConsequencesPotentielles(String consequencesPotentielles) {
+        this.consequencesPotentielles = consequencesPotentielles;
+    }
+    
+    public String getReferenceAudit() {
+        return referenceAudit;
+    }
+    public void setReferenceAudit(String referenceAudit) {
+        this.referenceAudit = referenceAudit;
+    }
+    
+    public String getCommentairesComplementaires() {
+        return commentairesComplementaires;
+    }
+    public void setCommentairesComplementaires(String commentairesComplementaires) {
+        this.commentairesComplementaires = commentairesComplementaires;
+    }
+
+    public Boolean getExigenceReglementaire() { return exigenceReglementaire; }
+    public void setExigenceReglementaire(Boolean exigenceReglementaire) { this.exigenceReglementaire = exigenceReglementaire; }   
 }
