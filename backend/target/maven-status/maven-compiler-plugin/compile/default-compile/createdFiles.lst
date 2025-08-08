@@ -6,7 +6,6 @@ com/example/backend/controller/AuthController.class
 com/example/backend/repository/RisqueRepository.class
 com/example/backend/controller/SourceIncidentController.class
 com/example/backend/controller/DummySecurityContext.class
-com/example/backend/controller/IncidentController.class
 com/example/backend/config/CorsConfig.class
 com/example/backend/dto/LoginRequest.class
 com/example/backend/config/SecurityConfig.class
@@ -28,6 +27,7 @@ com/example/backend/model/EquipeEnCharge.class
 com/example/backend/controller/DashboardController$NameValue.class
 com/example/backend/model/Role.class
 com/example/backend/service/impl/UserDetailsServiceImpl.class
+com/example/backend/config/MultipartConfig.class
 com/example/backend/repository/IncidentRepository.class
 com/example/backend/controller/DashboardController$StatsDTO.class
 com/example/backend/model/SourceIncident.class

@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.List;
 
 import java.io.File;
 import java.io.IOException;
@@ -168,4 +169,15 @@ public class IncidentController {
     public Incident getIncidentById(@PathVariable Long id) {
         return incidentRepository.findById(id).orElse(null);
     }
+    @GetMapping
+    public List<Incident> getAllIncidents() {
+        logger.info(">>> GET /api/incidents déclenché : récupération de tous les incidents.");
+        try {
+            return incidentRepository.findAll();
+        } catch (Exception e) {
+            logger.error(">>> Erreur lors de la récupération des incidents :", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur lors du chargement des incidents");
+        }
+    }
+    
 }
